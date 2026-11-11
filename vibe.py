@@ -27,7 +27,7 @@ from core.runner import BrowserVerifier, TerminalRunner
 
 console = Console()
 IDE = ide_mode()  # Vibe IDE: вместо рамок и таблиц CLI шлёт события (core/events.py), интерфейс рисует IDE
-VERSION = "0.01.1"
+VERSION = "0.01.2"
 
 
 def say(text: str, level: str = "info") -> None:
@@ -667,6 +667,15 @@ class VibeOrchestrator:
                 say(ui.ok(t("Без подтверждений: {state}", state=t("включено") if self.yolo_mode else t("выключено"))), "ok")
             else:
                 say(t("Без подтверждений: [bold]{state}[/bold]. /yolo on|off", state=t("вкл") if self.yolo_mode else t("выкл")))
+        elif name == "human":
+            a = arg.lower()
+            if a in ("on", "off", "вкл", "выкл", "1", "0"):
+                self.config.human_input = a in ("on", "вкл", "1")
+                self.config.save_project_config()
+                emit("setting", key="human", value=self.config.human_input)
+                say(ui.ok(t("Человекоподобный ввод: {state}", state=t("включено") if self.config.human_input else t("выключено"))), "ok")
+            else:
+                say(t("Человекоподобный ввод: [bold]{state}[/bold]. /human on|off", state=t("вкл") if self.config.human_input else t("выкл")))
         elif name == "verify_cmd":
             self.config.verify_cmd = arg
             self.config.save_project_config()

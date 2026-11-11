@@ -114,6 +114,8 @@ class VibeConfig:
         self.max_heal_retries = int(os.getenv("VIBE_MAX_HEAL_RETRIES", "4"))
         self.upload_context_as_file = os.getenv("VIBE_UPLOAD_CONTEXT_AS_FILE", "true").lower() == "true"
         self.transport = os.getenv("VIBE_TRANSPORT", "auto").lower()
+        # человекоподобный ввод в браузере (кривая курсора, набор текста, паузы): /human on|off
+        self.human_input = os.getenv("VIBE_HUMAN", "false").lower() in ("1", "true", "yes", "on")
         self.extra_ignores = []
         # автоподбор контекста по описанию задачи (вместо отправки всех файлов)
         self.auto_context = os.getenv("VIBE_AUTO_CONTEXT", "false").lower() in ("1", "true", "yes", "on")
@@ -179,6 +181,7 @@ class VibeConfig:
                 self.upload_context_as_file = data.get("upload_context_as_file", self.upload_context_as_file)
                 self.extra_ignores = data.get("ignore", [])
                 self.transport = data.get("transport", self.transport)
+                self.human_input = bool(data.get("human_input", self.human_input))
                 self.auto_context = bool(data.get("auto_context", self.auto_context))
                 self.auto_context_max_files = int(data.get("auto_context_max_files", self.auto_context_max_files))
                 self.auto_context_budget = int(data.get("auto_context_budget", self.auto_context_budget))
@@ -201,6 +204,7 @@ class VibeConfig:
             "upload_context_as_file": self.upload_context_as_file,
             "ignore": self.extra_ignores,
             "transport": self.transport,
+            "human_input": self.human_input,
             "auto_context": self.auto_context,
             "auto_context_max_files": self.auto_context_max_files,
             "auto_context_budget": self.auto_context_budget,

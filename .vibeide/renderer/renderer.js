@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const el = MD.el;
   const LS_KEY = 'vibeide:v2';
-  const VERSION = '0.3.0';
+  const VERSION = '0.01.2';
 
   /* ================= данные ================= */
 

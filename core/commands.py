@@ -15,6 +15,7 @@ COMMANDS: Dict[str, str] = {
     "attach": "прикрепить файл к следующему сообщению: /attach <путь> (zip, png, jpg, webp, gif)",
     "attach_clear": "убрать все вложения",
     "yolo": "без подтверждений: /yolo on|off",
+    "human": "человекоподобный ввод в браузере (курсор, набор текста): /human on|off",
     "continue": "продолжить остановленный ответ",
     "list_models": "список моделей (для IDE)",
     "transport": "как передавать контекст: auto|file|paste|inline|base64|zip",
@@ -35,7 +36,7 @@ GROUPS: List[Tuple[str, List[str]]] = [
     ("Задачи", ["plan", "continue", "undo", "fix", "check_ui"]),
     ("Модель", ["provider", "model", "reasoning", "promptstyle"]),
     ("Контекст", ["context", "autocontext", "autocontext_set", "transport", "attach", "attach_clear"]),
-    ("Безопасность", ["yolo", "verify_cmd"]),
+    ("Безопасность", ["yolo", "human", "verify_cmd"]),
     ("Сессия", ["reset", "init", "lang", "help", "exit"]),
 ]
 

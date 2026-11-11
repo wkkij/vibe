@@ -2,12 +2,14 @@ import asyncio
 import base64
 import mimetypes
 import os
+import random
 import re
 import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
 from .config import VibeConfig
+from .humanize import HumanInput
 from .events import GenerationStopped, clear_stop, emit, stop_requested
 from .i18n import t
 from .prompts import PromptBook
@@ -59,6 +61,26 @@ class WebChatBridge:
         self.last_transport: str = "-"
         self.pending_files: List[Path] = []  # вложения пользователя (zip/изображения) для следующего сообщения
         self.prompts = PromptBook("classic")  # CLI подставляет свой PromptBook со стилем из настроек
+
+    # ------------------------------------------------------------ human-like input (/human on|off)
+    def _hum(self) -> Optional[HumanInput]:
+        """HumanInput when the human mode is on, else None."""
+        if not getattr(self.config, "human_input", False):
+            return None
+        if getattr(self, "_human", None) is None:
+            self._human = HumanInput()
+        return self._human
+
+    async def _nap(self, seconds: float):
+        """asyncio.sleep; in the human mode with natural jitter."""
+        await asyncio.sleep(seconds * random.uniform(0.85, 1.5) if self._hum() else seconds)
+
+    async def _click(self, locator, **kw):
+        hum = self._hum()
+        if hum is not None and not kw:
+            await hum.click(locator)
+        else:
+            await locator.click(**kw)
 
     @property
     def prov(self) -> Provider:
@@ -159,15 +181,17 @@ class WebChatBridge:
                 t("Не удалось подключиться к Chrome по адресу {cdp}.\nЗапустите скрипт scripts/start_chrome_{key}_* (.bat), войдите в аккаунт на {url} и повторите.\nДетали: {e}",
                   cdp=self.config.cdp_url, key=self.prov.key, url=self.prov.url, e=e)
             )
+        if self._hum():
+            self._hum().reset()
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
         page = next((pg for pg in context.pages if self.prov.host in pg.url), None)
         if page is None:
             page = await context.new_page()
             await page.goto(self._chat_url(), wait_until="domcontentloaded")
-            await asyncio.sleep(3)
+            await self._nap(3)
         elif new_chat:
             await page.goto(self._chat_url(), wait_until="domcontentloaded")
-            await asyncio.sleep(2.5)
+            await self._nap(2.5)
         try:
             await page.wait_for_selector(self.prov.input, timeout=20000)
         except Exception:
@@ -210,7 +234,7 @@ class WebChatBridge:
                 if not (extra.exists() and (await self._attach_file(page, extra, "file") or await self._attach_file(page, extra, "paste"))):
                     emit("log", level="warn", text=t("Не удалось прикрепить {name} к чату — файл пропущен.", name=extra.name))
                 else:
-                    await asyncio.sleep(0.8)
+                    await self._nap(0.8)
 
             if canary and transport != "none":
                 message += "\n\n" + self.prompts.canary(canary)
@@ -247,9 +271,9 @@ class WebChatBridge:
         end = time.time() + timeout
         while time.time() < end:
             if await page.locator(self.prov.chip).count() > 0:
-                await asyncio.sleep(1.5)
+                await self._nap(1.5)
                 return True
-            await asyncio.sleep(0.5)
+            await self._nap(0.5)
         return False
 
     async def _upload_via_input(self, page, path: Path) -> bool:
@@ -267,8 +291,8 @@ class WebChatBridge:
             plus = page.locator(self.prov.plus).first
             if await page.locator(self.prov.plus).count() == 0:
                 return False
-            await plus.click()
-            await asyncio.sleep(0.8)
+            await self._click(plus)
+            await self._nap(0.8)
             items = page.locator('[role="menuitem"], button, a')
             n = await items.count()
             for i in range(min(n, 60)):
@@ -280,7 +304,7 @@ class WebChatBridge:
                 if label and len(label) < 60 and UPLOAD_ITEM_RE.search(label):
                     try:
                         async with page.expect_file_chooser(timeout=5000) as fc:
-                            await it.click()
+                            await self._click(it)
                         chooser = await fc.value
                         await chooser.set_files(str(path))
                         return True
@@ -333,8 +357,21 @@ class WebChatBridge:
 
     async def _fill_editor(self, page, text: str) -> bool:
         editor = page.locator(self.prov.input).first
-        await editor.click()
+        await self._click(editor)
         want = int(len(text.strip()) * 0.9)
+
+        hum = self._hum()
+        if hum is not None:
+            try:
+                if await self._editor_text_len(page) > 0:
+                    await page.keyboard.press("ControlOrMeta+A")
+                    await page.keyboard.press("Backspace")
+                await hum.fill(page, text)
+                await self._nap(0.6)
+                if await self._editor_text_len(page) >= want:
+                    return True
+            except Exception:
+                pass  # fall back to the quick methods below (they replace whatever was typed)
 
         # 1) быстрая вставка как из буфера обмена
         await page.evaluate(
@@ -346,7 +383,7 @@ class WebChatBridge:
             }""",
             [self.prov.editor, text],
         )
-        await asyncio.sleep(0.8)
+        await self._nap(0.8)
         if await self._editor_text_len(page) >= want:
             return True
 
@@ -360,7 +397,7 @@ class WebChatBridge:
                 "([sel, t]) => { const e = document.querySelector(sel); e.focus(); document.execCommand('insertText', false, t); }",
                 [self.prov.editor, text[i : i + 20000]],
             )
-        await asyncio.sleep(0.8)
+        await self._nap(0.8)
         if await self._editor_text_len(page) >= want:
             return True
 
@@ -383,9 +420,12 @@ class WebChatBridge:
                 b = btn.first
                 disabled = await b.get_attribute("aria-disabled")
                 if disabled != "true" and await b.is_enabled():
-                    await b.click()
+                    hum = self._hum()
+                    if hum is not None:
+                        await hum.pause(0.6, 1.8)  # a person rereads the message before sending
+                    await self._click(b)
                     return
-            await asyncio.sleep(0.7)
+            await self._nap(0.7)
         await page.locator(self.prov.input).first.press("Enter")
 
     async def _read_response(self, page) -> str:
@@ -412,10 +452,10 @@ class WebChatBridge:
         try:
             btn = page.locator(self.prov.stop)
             if await btn.count() > 0:
-                await btn.first.click()
+                await self._click(btn.first)
         except Exception:
             pass
-        await asyncio.sleep(1.2)
+        await self._nap(1.2)
         try:
             partial = (await self._read_response(page)).strip()
         except Exception:
@@ -431,7 +471,7 @@ class WebChatBridge:
                 raise GenerationStopped(await self._stop_and_collect(page))
             if await page.locator(self.prov.response).count() > before_count:
                 break
-            await asyncio.sleep(0.8)
+            await self._nap(0.8)
 
         stable, last = 0, ""
         phase = ""
@@ -439,9 +479,12 @@ class WebChatBridge:
         # лимит ожидания ответа: по умолчанию 5 минут, Vibe IDE ставит до 60+ минут
         limit = float(os.environ.get("VIBE_RESPONSE_TIMEOUT", "300") or 300)
         while time.time() - start < limit:
-            await asyncio.sleep(1.2)
+            await self._nap(1.2)
             if stop_requested():
                 raise GenerationStopped(await self._stop_and_collect(page))
+            hum = self._hum()
+            if hum is not None and random.random() < 0.12:
+                await hum.drift(page)
             cur = await self._read_response(page)
             stopping = await page.locator(self.prov.stop).count() > 0
 
@@ -509,7 +552,7 @@ class WebChatBridge:
             if await self._visible_count(page) == 0:
                 return
             await page.keyboard.press("Escape")
-            await asyncio.sleep(0.4)
+            await self._nap(0.4)
         if await self._visible_count(page) > 0:
             backdrop = page.locator(".cdk-overlay-backdrop, .mat-mdc-menu-backdrop")
             try:
@@ -519,7 +562,7 @@ class WebChatBridge:
                     await page.mouse.click(3, 3)
             except Exception:
                 pass
-        await asyncio.sleep(0.4)
+        await self._nap(0.4)
 
     async def _open_model_menu(self, page) -> bool:
         # меню уже открыто (например, осталось от прошлой команды) — повторный клик его бы закрыл
@@ -529,8 +572,8 @@ class WebChatBridge:
         if btn is None:
             return False
         for _ in range(2):
-            await btn.click()
-            await asyncio.sleep(1.0)
+            await self._click(btn)
+            await self._nap(1.0)
             if await self._visible_count(page) > 0:
                 return True
         return False
@@ -641,8 +684,8 @@ class WebChatBridge:
             return [], None
         ctl = page.locator('[data-vibe-think="1"]').first
         try:
-            await ctl.click()
-            await asyncio.sleep(0.8)
+            await self._click(ctl)
+            await self._nap(0.8)
             opts = page.locator('mat-option, [role="option"]')
             names = []
             for i in range(min(await opts.count(), 12)):
@@ -670,8 +713,8 @@ class WebChatBridge:
                 return False, t("Модель '{name}' недоступна в вашем плане (нужно улучшить подписку).", name=locked["name"])
             names = "; ".join(e["name"] for e in entries if e["kind"] == "model")
             return False, t("Модель '{wanted}' не найдена. Доступно: {names}", wanted=wanted, names=names)
-        await page.locator(self.prov.model_item).nth(hit["idx"]).click()
-        await asyncio.sleep(1.0)
+        await self._click(page.locator(self.prov.model_item).nth(hit["idx"]))
+        await self._nap(1.0)
         await self._close_menu(page)
         if self.prov.model_param:  # AI Studio: в конфиг кладём ID модели, найденный в интерфейсе
             m = self._AI_ID_RE.search(hit["full"])
@@ -690,8 +733,8 @@ class WebChatBridge:
         if setting is None:
             return False, entries, t("В меню нет пункта «Thinking level».")
         before = {e["full"] for e in entries}
-        await page.locator(self.prov.model_item).nth(setting["idx"]).click()
-        await asyncio.sleep(1.0)
+        await self._click(page.locator(self.prov.model_item).nth(setting["idx"]))
+        await self._nap(1.0)
         after = await self._menu_entries(page)
         new = [e for e in after if e["full"] not in before]
         return True, (new or after), ""
@@ -710,8 +753,8 @@ class WebChatBridge:
             if hit is None:
                 await page.keyboard.press("Escape")
                 return False, t("Уровень '{wanted}' не найден в интерфейсе. Доступно: ", wanted=wanted) + "; ".join(names)
-            await page.locator("mat-option, [role=option]").filter(has_text=hit).first.click()
-            await asyncio.sleep(0.6)
+            await self._click(page.locator("mat-option, [role=option]").filter(has_text=hit).first)
+            await self._nap(0.6)
             return True, hit
 
         if self.prov.key == "gemini":
@@ -725,8 +768,8 @@ class WebChatBridge:
                 if hit is None:
                     hit = next((e for e in sub if self._norm(wanted) in self._norm(e["full"])), None)
                 if hit is not None:
-                    await page.locator(self.prov.model_item).nth(hit["idx"]).click()
-                    await asyncio.sleep(0.8)
+                    await self._click(page.locator(self.prov.model_item).nth(hit["idx"]))
+                    await self._nap(0.8)
                     await self._close_menu(page)
                     return True, hit["name"]
                 names = "; ".join(e["name"] for e in sub)
@@ -753,8 +796,8 @@ class WebChatBridge:
         if toggle_like and hit["checked"] == want_on:
             await self._close_menu(page)
         else:
-            await page.locator(self.prov.model_item).nth(hit["idx"]).click()
-            await asyncio.sleep(0.8)
+            await self._click(page.locator(self.prov.model_item).nth(hit["idx"]))
+            await self._nap(0.8)
             await self._close_menu(page)
         return True, hit["name"] + (t(" (вкл)") if toggle_like and want_on else t(" (выкл)") if toggle_like else "")
 

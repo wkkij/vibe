@@ -2,7 +2,7 @@
 
 **English** | [Русский](#ru)
 
-**Status:** beta · **Version:** `0.01.1` · **OS:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **License:** MIT
+**Status:** beta · **Version:** `0.01.2` · **OS:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **License:** MIT
 
 > A local "vibe coder" that runs on your **chat subscription**, not a paid API. Vibe drives a Chrome window where an AI chat is already open (Gemini, Claude or Google AI Studio), sends it your project context, reads the answer and applies the patches to your files.
 
@@ -137,6 +137,7 @@ python vibe.py --dir . "add a logout button to the header"
 | `/attach <path>` | attach a zip or image to the next message |
 | `/attach_clear` | remove attachments |
 | `/yolo on\|off` | no-confirmation mode |
+| `/human on\|off` | human-like input in the browser (curved cursor, natural typing and pauses) |
 | `/verify_cmd <command>` | verify command after patches |
 | `/fix [command]` | run the check and fix errors |
 | `/check_ui [url]` | check the frontend in a headless browser |
@@ -148,6 +149,10 @@ python vibe.py --dir . "add a logout button to the header"
 | `/help`, `/exit` | help, quit |
 
 Commands can be shortened to an unambiguous prefix (`/und` → `/undo`).
+
+### Human-like input
+
+By default Vibe drives the chat the way Playwright does: it jumps the cursor to the centre of a button and puts text in with a synthetic paste event. `/human on` (or `VIBE_HUMAN=true`, or `"human_input": true` in `.vibe.json`) switches to an input that looks like a person: the cursor travels along a curved path with easing and small overshoots, clicks land on a random point of the element after a short hover, text is typed with real key events and irregular delays (long text goes in as real insert events in chunks), and there are reading pauses before sending and small cursor drifts while the model answers. If a human action cannot be done safely (an overlay covers the button, the element moved), Vibe falls back to the normal action. The mode makes a message take a few seconds longer. It only makes the input look natural: the connection to Chrome is still CDP, nothing guarantees that a service will not notice automation, and using automation may be against a service's terms.
 
 ### Context transport formats
 
@@ -262,6 +267,7 @@ core/
   prompts.py            Russian prompt texts and per-task hints
   prompts_en.py         English prompt texts
   i18n.py, locale_en.py interface language: t() and the English catalog
+  humanize.py             human-like cursor and typing (/human)
   mascot.py, sprites.py, vibi_run.py, ui.py   Vibi the mascot (pixel frames, running cat) and the look of the CLI
   gemini_bridge.py      chat control through Chrome (sending, attachments, models)
   providers.py          Gemini / Claude / AI Studio profiles
@@ -321,7 +327,7 @@ MIT, see [LICENSE](LICENSE).
 
 [English](#vibe) | **Русский**
 
-**Статус:** бета · **Версия:** `0.01.1` · **ОС:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **Лицензия:** MIT
+**Статус:** бета · **Версия:** `0.01.2` · **ОС:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **Лицензия:** MIT
 
 > Локальный «вайбкодер» на **подписке на чат**, без платного API. Vibe управляет вашим Chrome с открытым чатом ИИ (Gemini, Claude или Google AI Studio), отправляет туда контекст проекта, получает ответ и применяет патчи к файлам.
 
@@ -454,6 +460,7 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 | `/attach <путь>` | прикрепить zip или изображение к следующему сообщению |
 | `/attach_clear` | убрать вложения |
 | `/yolo on\|off` | режим без подтверждений |
+| `/human on\|off` | человекоподобный ввод в браузере (кривая курсора, естественный набор и паузы) |
 | `/verify_cmd <команда>` | команда проверки после патчей |
 | `/fix [команда]` | прогнать проверку и починить ошибки |
 | `/check_ui [url]` | проверить фронтенд в headless-браузере |
@@ -465,6 +472,10 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 | `/help`, `/exit` | справка, выход |
 
 Команды можно сокращать до однозначного префикса (`/und` → `/undo`).
+
+### Человекоподобный ввод
+
+По умолчанию Vibe управляет чатом так, как это делает Playwright: мгновенно переносит курсор в центр кнопки и вставляет текст синтетическим событием paste. `/human on` (или `VIBE_HUMAN=true`, или `"human_input": true` в `.vibe.json`) включает ввод, похожий на человеческий: курсор идёт по кривой с разгоном и торможением и небольшими «перелётами», клик попадает в случайную точку элемента после короткого наведения, текст печатается настоящими событиями клавиатуры с неровным ритмом (длинный текст вставляется настоящими событиями вставки кусками), перед отправкой есть пауза на «перечитывание», а пока модель отвечает, курсор слегка дрейфует. Если человеческое действие нельзя выполнить безопасно (кнопку закрыл оверлей, элемент сдвинулся), Vibe выполняет обычное. Сообщение из-за этого занимает на несколько секунд больше. Режим лишь делает ввод естественным: связь с Chrome по-прежнему CDP, нет гарантии, что сервис не заметит автоматизацию, а использование автоматизации может противоречить правилам сервиса.
 
 ### Форматы отправки контекста
 
@@ -570,6 +581,7 @@ core/
   prompts.py            русские тексты промптов и подсказки по типам задач
   prompts_en.py         английские тексты промптов
   i18n.py, locale_en.py язык интерфейса: t() и английский каталог
+  humanize.py             человекоподобный курсор и набор (/human)
   mascot.py, sprites.py, vibi_run.py, ui.py   маскот Vibi (пиксельные кадры, бегущий кот) и оформление CLI
   gemini_bridge.py      управление чатом через Chrome (отправка, вложения, модели)
   providers.py          профили Gemini / Claude / AI Studio
