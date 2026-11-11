@@ -1,0 +1,51 @@
+/* Темы Vibe IDE. Каждая тема — набор переменных; [data-theme] работает и на карточках предпросмотра в настройках. */
+[data-theme] {
+  --bg: #0b0d12; --bg2: #11141b; --bg3: #181c26; --bg4: #202533;
+  --line: #232837; --line2: #323a4f;
+  --fg: #e8eaf0; --fg2: #b4bacb; --fg3: #7e869b; --fg4: #545c72;
+  --accent: #7c5cff; --accent2: #14d6c4; --accent-fg: #ffffff;
+  --ok: #3ddc97; --warn: #f5b84a; --err: #ff6b7a;
+  --user: #2b2f55; --user-fg: #f1f2ff;
+  --code: #0d1017; --add-bg: rgba(61, 220, 151, 0.12); --del-bg: rgba(255, 107, 122, 0.12);
+  --glass: rgba(17, 20, 27, 0.78); --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  --fx-rgb: 124, 92, 255; --scheme: dark;
+}
+[data-theme="graphite"] { /* по умолчанию */ }
+[data-theme="noir"] {
+  --bg: #000000; --bg2: #070707; --bg3: #101010; --bg4: #1a1a1a; --line: #222222; --line2: #3a3a3a;
+  --fg: #ffffff; --fg2: #c8c8c8; --fg3: #8a8a8a; --fg4: #5c5c5c;
+  --accent: #ffffff; --accent2: #9a9a9a; --accent-fg: #000000; --user: #ffffff; --user-fg: #000000;
+  --code: #050505; --glass: rgba(8, 8, 8, 0.8); --fx-rgb: 255, 255, 255;
+}
+[data-theme="midnight"] {
+  --bg: #070b18; --bg2: #0c1224; --bg3: #121a33; --bg4: #1a2444; --line: #1b2644; --line2: #2b3a66;
+  --fg: #e6ecff; --fg2: #aebbe0; --fg3: #7385b5; --fg4: #4b5a88;
+  --accent: #4d8dff; --accent2: #38d9ff; --user: #1a2c5c; --user-fg: #eef3ff; --code: #080d1c;
+  --glass: rgba(12, 18, 36, 0.8); --fx-rgb: 77, 141, 255;
+}
+[data-theme="aurora"] {
+  --bg: #08100f; --bg2: #0d1917; --bg3: #13241f; --bg4: #1a322b; --line: #1c3029; --line2: #2b4a40;
+  --fg: #e8fff6; --fg2: #b3d9cb; --fg3: #7aa597; --fg4: #4f776a;
+  --accent: #2fe0a5; --accent2: #8b7bff; --accent-fg: #04130d; --user: #17463a; --user-fg: #eafff6; --code: #07110e;
+  --glass: rgba(13, 25, 23, 0.8); --fx-rgb: 47, 224, 165;
+}
+[data-theme="sunset"] {
+  --bg: #130c0f; --bg2: #1b1015; --bg3: #26161d; --bg4: #331e27; --line: #3a2029; --line2: #5a3140;
+  --fg: #fff0ee; --fg2: #e0bdb8; --fg3: #a98580; --fg4: #765a58;
+  --accent: #ff7a59; --accent2: #ffb45e; --accent-fg: #1a0a06; --user: #5a2733; --user-fg: #fff3f0; --code: #100a0c;
+  --glass: rgba(27, 16, 21, 0.8); --fx-rgb: 255, 122, 89;
+}
+[data-theme="light"] {
+  --bg: #f5f6fa; --bg2: #ffffff; --bg3: #eef0f6; --bg4: #e3e6ef; --line: #e1e4ee; --line2: #c8cddd;
+  --fg: #1b1f2e; --fg2: #444b63; --fg3: #6c7490; --fg4: #99a0b8;
+  --accent: #5b3df5; --accent2: #0bb3a5; --accent-fg: #ffffff; --ok: #12a468; --warn: #b9770e; --err: #d6293e;
+  --user: #5b3df5; --user-fg: #ffffff; --code: #f1f3f9; --add-bg: rgba(18, 164, 104, 0.12); --del-bg: rgba(214, 41, 62, 0.1);
+  --glass: rgba(255, 255, 255, 0.85); --shadow: 0 14px 40px rgba(40, 50, 90, 0.14); --fx-rgb: 91, 61, 245; --scheme: light;
+}
+[data-theme="paper"] {
+  --bg: #f4efe6; --bg2: #fbf8f2; --bg3: #ede6d8; --bg4: #e2d9c7; --line: #e0d7c5; --line2: #c9bda5;
+  --fg: #2b2620; --fg2: #51483c; --fg3: #7d7160; --fg4: #a89c88;
+  --accent: #c2571a; --accent2: #2f7d6d; --accent-fg: #ffffff; --ok: #2f7d4a; --warn: #a96a0b; --err: #b3261e;
+  --user: #c2571a; --user-fg: #ffffff; --code: #f0e9da; --glass: rgba(251, 248, 242, 0.88);
+  --shadow: 0 14px 40px rgba(80, 60, 30, 0.15); --fx-rgb: 194, 87, 26; --scheme: light;
+}

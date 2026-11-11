@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Secrets and local config
+.env
+.vibe.json
+.vibe_backups/
+.vibe_context_bundle.txt
+
+# Node / Electron
+node_modules/
+dist/
+
+# Scratch / OS
+testelectro/
+.DS_Store
+Thumbs.db

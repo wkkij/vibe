@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="graphite">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vibe IDE</title>
+  <link rel="icon" href="assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="themes.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <canvas id="fx"></canvas>
+
+  <div class="app">
+    <header class="titlebar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+          <defs>
+            <linearGradient id="lg" x1="6" y1="4" x2="58" y2="60" gradientUnits="userSpaceOnUse"><stop class="lg-a" offset="0"/><stop class="lg-b" offset="1"/></linearGradient>
+          </defs>
+          <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#lg)"/>
+          <path d="M10 41 Q16 29 21 36 T32 36 T43 36 Q48 30 54 41" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2.4" stroke-linecap="round"/>
+          <path d="M17 22 L32 46 L47 22" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M50 7 L51.9 12.1 L57 14 L51.9 15.9 L50 21 L48.1 15.9 L43 14 L48.1 12.1Z" fill="#fff"/>
+        </svg>
+        <span class="brand-name">Vibe<b>IDE</b></span>
+      </div>
+      <button id="projectPill" class="pill" title="Выбрать папку проекта">
+        <span class="ico" data-i="folder"></span><span id="projectName">Выбрать проект</span>
+      </button>
+      <div class="spacer"></div>
+      <button id="modelChip" class="pill chip-model" title="Провайдер и модель">
+        <i id="chipDot" class="dot off"></i><span id="chipText">Gemini</span><span class="ico sm" data-i="chev"></span>
+      </button>
+      <div id="sessionPill" class="pill state off"><i class="dot"></i><span id="sessionText">сессия не запущена</span></div>
+      <button id="endSession" class="icon-btn hidden" title="Завершить сессию"><span class="ico" data-i="power"></span></button>
+      <button id="toggleInspector" class="icon-btn" title="Панель изменений"><span class="ico" data-i="panel"></span></button>
+    </header>
+
+    <div class="workbench">
+      <nav class="activity">
+        <button class="act active" data-view="chat" title="Чат"><span class="ico" data-i="chat"></span></button>
+        <button class="act" data-view="ctx" title="Контекст проекта"><span class="ico" data-i="folder"></span></button>
+        <div class="spacer"></div>
+        <button class="act" data-view="settings" title="Настройки"><span class="ico" data-i="sliders"></span></button>
+      </nav>
+
+      <!-- ЧАТ -->
+      <section id="viewChat" class="view active">
+        <div class="chat-col">
+          <div id="feed" class="feed">
+            <div id="hero" class="hero">
+              <svg class="hero-logo" viewBox="0 0 64 64" aria-hidden="true">
+                <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#lg)"/>
+                <path d="M10 41 Q16 29 21 36 T32 36 T43 36 Q48 30 54 41" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2.4" stroke-linecap="round"/>
+                <path d="M17 22 L32 46 L47 22" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M50 7 L51.9 12.1 L57 14 L51.9 15.9 L50 21 L48.1 15.9 L43 14 L48.1 12.1Z" fill="#fff"/>
+              </svg>
+              <h1>Опиши задачу — Vibe сделает остальное</h1>
+              <p>IDE подберёт нужные файлы, отправит их в ИИ, применит патчи и проверит сборку. Ход работы модели виден в реальном времени, ответ можно остановить.</p>
+              <div id="heroCards" class="hero-cards"></div>
+              <button id="heroPick" class="btn primary big">Выбрать папку проекта</button>
+            </div>
+          </div>
+
+          <div class="composer-wrap">
+            <div id="slashMenu" class="slash hidden"></div>
+            <div class="composer">
+              <div id="attachTray" class="attach-tray hidden"></div>
+              <textarea id="prompt" rows="1" placeholder="Опиши задачу…  (/ — команды)"></textarea>
+              <div class="composer-bar">
+                <button id="cAttach" class="chip" title="Прикрепить zip или изображения (можно перетащить или вставить из буфера)"><span class="ico sm" data-i="clip"></span>Файл</button>
+                <button id="cModel" class="chip" title="Модель"><span class="ico sm" data-i="spark"></span><span id="cModelText">Gemini</span></button>
+                <button id="cAuto" class="chip toggle" title="Автоподбор контекста по описанию задачи"><span class="ico sm" data-i="target"></span>Автоконтекст</button>
+                <button id="cPlan" class="chip toggle" title="Сначала план"><span class="ico sm" data-i="list"></span>План</button>
+                <span id="ctxMini" class="ctx-mini">—</span>
+                <div class="spacer"></div>
+                <button id="undoBtn" class="chip" title="Откатить последний патч"><span class="ico sm" data-i="undo"></span>Откат</button>
+                <button id="resetBtn" class="chip" title="Новый чат"><span class="ico sm" data-i="plus"></span>Новый чат</button>
+                <button id="send" class="send" title="Отправить"><span class="ico" data-i="send"></span></button>
+              </div>
+            </div>
+            <div class="hintline">Enter — отправить · Shift+Enter — новая строка · zip и изображения можно перетащить в окно</div>
+          </div>
+        </div>
+
+        <aside id="inspector" class="inspector">
+          <div class="itabs">
+            <button class="itab active" data-itab="changes">Изменения</button>
+            <button class="itab" data-itab="context">Контекст</button>
+            <button class="itab" data-itab="log">Журнал</button>
+          </div>
+          <div id="iChanges" class="ipane active"></div>
+          <div id="iContext" class="ipane"></div>
+          <div id="iLog" class="ipane mono"></div>
+        </aside>
+      </section>
+
+      <!-- КОНТЕКСТ -->
+      <section id="viewCtx" class="view">
+        <div class="ctx-grid">
+          <div class="panel tree-panel">
+            <div class="panel-head"><h3>Дерево проекта</h3><span class="hint">Галочка — файл попадёт в контекст</span></div>
+            <div id="tree" class="tree"></div>
+          </div>
+          <div class="panel rules-panel">
+            <h3>Исключения · .vibeignore</h3>
+            <div id="chips" class="chips"></div>
+            <input id="ruleInput" class="input" placeholder="docs/ или *.log + Enter" />
+            <div id="suggest" class="suggest"></div>
+            <h3 class="mt">Итог</h3>
+            <div class="stats">
+              <div class="stat"><div class="stat-v" id="stFiles">0</div><div class="stat-l">файлов</div></div>
+              <div class="stat"><div class="stat-v" id="stSize">0</div><div class="stat-l">размер</div></div>
+              <div class="stat wide"><div class="stat-v" id="stTokens">0</div><div class="stat-l">≈ токенов</div></div>
+            </div>
+            <div class="meter"><div id="meterFill" class="meter-fill"></div></div>
+            <div id="meterNote" class="meter-note"></div>
+            <div id="stSkipped" class="meter-note"></div>
+            <div id="autoNote" class="note"></div>
+            <h3 class="mt">Самые тяжёлые</h3>
+            <div id="top"></div>
+            <div class="row-btns">
+              <button id="refreshCtx" class="btn small">Пересчитать</button>
+              <button id="openIgnore" class="btn small ghost">Показать .vibeignore</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- НАСТРОЙКИ -->
+      <section id="viewSettings" class="view">
+        <div class="settings">
+          <nav class="snav">
+            <h2>Настройки</h2>
+            <button class="stab active" data-stab="look"><span class="ico" data-i="palette"></span>Оформление</button>
+            <button class="stab" data-stab="features"><span class="ico" data-i="bolt"></span>Функции</button>
+            <button class="stab" data-stab="connect"><span class="ico" data-i="plug"></span>Подключение</button>
+            <button class="stab" data-stab="about"><span class="ico" data-i="info"></span>О программе</button>
+          </nav>
+          <div class="spanes">
+            <div id="sLook" class="spane active"></div>
+            <div id="sFeatures" class="spane"></div>
+            <div id="sConnect" class="spane"></div>
+            <div id="sAbout" class="spane"></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="statusbar">
+      <span id="sbChrome" class="sb"><i class="dot off"></i><span>Chrome</span></span>
+      <span id="sbModel" class="sb">—</span>
+      <span id="sbAuto" class="sb">Автоконтекст: выкл</span>
+      <div class="spacer"></div>
+      <span id="sbPhase" class="sb">готов</span>
+      <span id="sbPath" class="sb path-sb"></span>
+    </footer>
+  </div>
+
+  <div id="modelPop" class="popover hidden"></div>
+  <div id="toast" class="toast"></div>
+  <script src="particles.js"></script>
+  <script src="markdown.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

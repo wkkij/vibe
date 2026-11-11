@@ -1,0 +1,31 @@
+{
+  "name": "vibe-ide",
+  "version": "0.01.0",
+  "description": "Vibe IDE — оболочка для Vibe CLI: чат, темы, автоподбор контекста, Gemini / Claude / AI Studio",
+  "author": "wkkij",
+  "license": "MIT",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "dev.wkkij.vibeide",
+    "productName": "Vibe IDE",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "icon": "build/icon.png"
+  }
+}

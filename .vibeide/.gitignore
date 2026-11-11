@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.vibe_context_bundle.txt
+.DS_Store
