@@ -1,4 +1,4 @@
-# Vibe
+﻿# Vibe
 
 **English** | [Русский](#ru)
 
@@ -8,7 +8,7 @@
 
 **Vibe CLI** is the command line tool. **Vibe IDE** is an optional Electron GUI on top of it: chat, project tree, change panel and log.
 
-![Vibe IDE](docs/ide.jpg)
+![Vibe IDE](docs/ide.jpg?v=2)
 
 > ⚠️ **Unofficial project.** Vibe is not affiliated with, endorsed by or sponsored by Google or Anthropic. It automates the web interfaces of third-party services, which may be against their Terms of Service and may lead to limits or a ban on your account. **Use at your own risk.** See [Disclaimer](#disclaimer-and-privacy).
 
