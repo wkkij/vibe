@@ -36,16 +36,16 @@ def test_aistudio_provider():
 def test_prompts_classic_equals_original_and_rotation():
     assert SYSTEM_PROMPT_PATCHER.startswith("Ты — автономный Principal Software Engineer")
     assert PATCH_FORMAT_RULES in SYSTEM_PROMPT_PATCHER
-    b = PromptBook("auto", seed=1)
+    b = PromptBook("auto", seed=1, lang="ru")
     texts = [b.task("x") for _ in range(10)]
     assert all(a != c for a, c in zip(texts, texts[1:])) and len(set(texts)) > 3  # текст каждый раз новый
     assert b.begin_task("исправь баг в кнопке") == "bug" and b.begin_task("добавь тёмную тему") == "feature"
     for st in ("auto", "classic"):
-        pb = PromptBook(st)
+        pb = PromptBook(st, lang="ru")
         assert PATCH_FORMAT_RULES in pb.system_patcher()
         assert "<<<FILE" in pb.task("x") and "x" in pb.task("x")
         assert "CONTEXT_OK abc123" in pb.canary("abc123") and "VIBE_CANARY=abc123" in pb.canary("abc123")
-    assert "NEED_FILES" in PromptBook("auto").system_patcher(True)
+    assert "NEED_FILES" in PromptBook("auto", lang="ru").system_patcher(True)
 
 
 def test_selector_ru_task_finds_en_code():

@@ -1,7 +1,7 @@
 """Автодополнение команд и аргументов (prompt_toolkit). Если библиотеки нет — возвращает None."""
 from typing import Callable, List
 
-from .commands import COMMANDS, LEVEL_WORDS
+from .commands import COMMANDS, LEVEL_WORDS, describe
 
 
 def make_session(history_path: str, get_models: Callable[[], List[str]]):
@@ -18,6 +18,8 @@ def make_session(history_path: str, get_models: Callable[[], List[str]]):
         "promptstyle": ["auto", "classic", "concise", "strict", "mentor", "pair", "friendly"],
         "transport": ["auto", "file", "paste", "inline", "zip", "base64"],
         "reasoning": ["low", "medium", "high", "off", "default"],
+        "lang": ["en", "ru", "auto"],
+        "yolo": ["on", "off"],
     }
 
     class VibeCompleter(Completer):
@@ -26,9 +28,9 @@ def make_session(history_path: str, get_models: Callable[[], List[str]]):
             if not text.startswith("/"):
                 return
             if " " not in text:
-                for name, desc in COMMANDS.items():
+                for name in COMMANDS:
                     if name.startswith(text[1:].lower()):
-                        yield Completion("/" + name, start_position=-len(text), display_meta=desc)
+                        yield Completion("/" + name, start_position=-len(text), display_meta=describe(name))
                 return
             cmd, _, rest = text[1:].partition(" ")
             cmd = cmd.lower()

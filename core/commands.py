@@ -2,6 +2,8 @@
 import difflib
 from typing import Dict, List, Optional, Tuple
 
+from .i18n import t
+
 COMMANDS: Dict[str, str] = {
     "plan": "сначала план, потом код: /plan <задача>",
     "model": "модель и уровень: /model [имя|номер] [low|medium|high]",
@@ -23,9 +25,28 @@ COMMANDS: Dict[str, str] = {
     "context": "что попадёт в контекст",
     "reset": "новый чат",
     "init": "создать .vibe.json и VIBE.md",
+    "lang": "язык интерфейса: /lang en|ru|auto",
     "help": "список команд",
     "exit": "выход",
 }
+
+# Группы для экрана /help: (заголовок, команды). Заголовки и описания переводятся через t().
+GROUPS: List[Tuple[str, List[str]]] = [
+    ("Задачи", ["plan", "continue", "undo", "fix", "check_ui"]),
+    ("Модель", ["provider", "model", "reasoning", "promptstyle"]),
+    ("Контекст", ["context", "autocontext", "autocontext_set", "transport", "attach", "attach_clear"]),
+    ("Безопасность", ["yolo", "verify_cmd"]),
+    ("Сессия", ["reset", "init", "lang", "help", "exit"]),
+]
+
+
+def describe(name: str) -> str:
+    """Описание команды на текущем языке интерфейса."""
+    return t(COMMANDS.get(name, ""))
+
+
+def help_groups() -> List[Tuple[str, List[str]]]:
+    return [(t(title), names) for title, names in GROUPS]
 ALIASES = {"new": "reset", "quit": "exit", "q": "exit"}
 
 # слова, которые считаются уровнем рассуждений, если стоят последними после названия модели

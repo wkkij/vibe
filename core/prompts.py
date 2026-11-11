@@ -7,13 +7,19 @@
 всегда одинаковы — от них зависит парсер core/patcher.py.
 
 prompt_style: auto — разный текст каждый раз; classic — фиксированный исходный текст.
+
+Язык: русский набор — этот файл, английский — core/prompts_en.py (те же имена и структура). Набор выбирается по языку
+интерфейса (core/i18n.py) либо явно через PromptBook(lang=...). Маркеры формата патчей одинаковы в обоих.
 """
 import random
 import re
+import sys
 from typing import Dict, List, Optional
 
+from .i18n import get_lang, t
+
 STYLE_ORDER: List[str] = ["classic"]
-STYLE_TITLES: Dict[str, str] = {"auto": "Авто (каждый раз новый текст)", "classic": "Классика (один и тот же текст)"}
+STYLE_TITLES: Dict[str, str] = {"auto": "Авто (каждый раз новый текст)", "classic": "Классика (один и тот же текст)"}  # ключи для t()
 VALID_STYLES = ("auto", "classic")
 
 # --- формат патчей: одинаков для всех стилей ---------------------------------------------------
@@ -230,6 +236,26 @@ CANARY_VARIANTS: List[str] = [
 ]
 
 
+# --- служебные тексты, которые CLI подставляет в сообщения ---------------------------------------
+SCOPE_NOTE = (
+    "Включены {n} из {total} файлов проекта, выбранные по описанию задачи. "
+    "Остальные перечислены только в <project_overview>. Нужен другой файл — ответь строкой NEED_FILES: путь1, путь2."
+)
+REPAIR_PART = "ФАЙЛ {path} (текущее содержимое):\n```\n{actual}\n```\nНЕ СОВПАВШИЕ SEARCH-блоки:\n```\n{blocks}\n```"
+CHECK_UI = (
+    "При открытии {url} (Title: {title}) в браузере обнаружены следующие ошибки консоли:\n"
+    "```\n{errors}\n```\nИсправь код проекта с помощью блоков SEARCH/REPLACE."
+)
+BUNDLE_ZIP = (
+    "Контекст проекта лежит во вложенном архиве `{zip}`: внутри один файл `{bundle}`. "
+    "Распакуй его и используй как контекст репозитория."
+)
+BUNDLE_B64 = (
+    "Во вложенном файле `{file}` — base64 (UTF-8 текст) файла `{bundle}` с контекстом проекта. "
+    "Склей строки, декодируй и используй как контекст репозитория."
+)
+
+
 def classify_task(text: str) -> str:
     t = (text or "").lower()
     for kind, pat in KIND_PATTERNS:
@@ -241,11 +267,22 @@ def classify_task(text: str) -> str:
 class PromptBook:
     """Собирает текст промптов. В режиме auto каждое сообщение формулируется по-новому и зависит от типа задачи."""
 
-    def __init__(self, style: str = "auto", seed: Optional[int] = None):
+    def __init__(self, style: str = "auto", seed: Optional[int] = None, lang: Optional[str] = None):
         self.rng = random.Random(seed)
         self.style = style if style in VALID_STYLES else "auto"
         self.kind = "general"
         self._last: Dict[str, int] = {}
+        self.lang = lang  # None — следовать языку интерфейса
+
+    @property
+    def pack(self):
+        """Модуль с текстами на нужном языке: этот файл (ru) или core/prompts_en.py (en)."""
+        lang = self.lang or get_lang()
+        if lang == "en":
+            from . import prompts_en
+
+            return prompts_en
+        return sys.modules[__name__]
 
     def set_style(self, style: str) -> None:
         self.style = style if style in VALID_STYLES else "auto"
@@ -270,24 +307,25 @@ class PromptBook:
 
     def _t(self, key: str) -> str:
         if self.style == "classic":
-            return CLASSIC[key]
-        return self._pick(key, POOLS[key])
+            return self.pack.CLASSIC[key]
+        return self._pick(key, self.pack.POOLS[key])
 
     def _hint(self) -> str:
         if self.style == "classic":
             return ""
-        pool = KIND_HINTS.get(self.kind) or KIND_HINTS["general"]
+        hints = self.pack.KIND_HINTS
+        pool = hints.get(self.kind) or hints["general"]
         return self._pick("hint:" + self.kind, pool)
 
     # --- системные инструкции ---
     def system_patcher(self, auto_context: bool = False) -> str:
-        rules = PATCH_FORMAT_RULES + ("\n" + AUTO_CONTEXT_RULE if auto_context else "")
+        rules = self.pack.PATCH_FORMAT_RULES + ("\n" + self.pack.AUTO_CONTEXT_RULE if auto_context else "")
         hint = self._hint()
         return f"{self._t('intro')}\n\n{rules}\n\n{self._t('outro')}" + (f"\n{hint}" if hint else "") + "\n"
 
     def system_planner(self) -> str:
         hint = self._hint()
-        return f"{self._t('plan_intro')}\n\n{PLAN_BODY}\n\n{self._t('plan_outro')}" + (f"\n{hint}" if hint else "") + "\n"
+        return f"{self._t('plan_intro')}\n\n{self.pack.PLAN_BODY}\n\n{self._t('plan_outro')}" + (f"\n{hint}" if hint else "") + "\n"
 
     # --- сообщения ---
     def task(self, user_task: str) -> str:
@@ -318,8 +356,13 @@ class PromptBook:
         return self._t("dirty").format(fresh=fresh, task=task)
 
     def canary(self, canary: str) -> str:
-        return self._pick("canary", CANARY_VARIANTS).format(canary=canary)
+        return self._pick("canary", self.pack.CANARY_VARIANTS).format(canary=canary)
+
+
+def style_title(style: str) -> str:
+    """Название стиля промпта на языке интерфейса."""
+    return t(STYLE_TITLES[style])
 
 
 def describe_styles() -> List[Dict[str, str]]:
-    return [{"id": k, "title": STYLE_TITLES[k]} for k in VALID_STYLES]
+    return [{"id": k, "title": style_title(k)} for k in VALID_STYLES]

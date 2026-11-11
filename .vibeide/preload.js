@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 const CHANNELS = new Set(['proc-out', 'proc-exit', 'log', 'vibe-event']);
 
 contextBridge.exposeInMainWorld('vibe', {
+  setLang: (lang) => ipcRenderer.invoke('set-lang', lang),
   status: (project) => ipcRenderer.invoke('status', project),
   launchChrome: (provider, project) => ipcRenderer.invoke('launch-chrome', provider, project),
   sessionStart: (opts) => ipcRenderer.invoke('session-start', opts),

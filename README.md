@@ -2,7 +2,7 @@
 
 **English** | [Русский](#ru)
 
-**Status:** beta · **Version:** `0.01.0` · **OS:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **License:** MIT
+**Status:** beta · **Version:** `0.01.1` · **OS:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **License:** MIT
 
 > A local "vibe coder" that runs on your **chat subscription**, not a paid API. Vibe drives a Chrome window where an AI chat is already open (Gemini, Claude or Google AI Studio), sends it your project context, reads the answer and applies the patches to your files.
 
@@ -48,6 +48,8 @@ Shortcut: `run_vibe.bat`. For the GUI see [Vibe IDE](#vibe-ide).
 - **Models read from the site:** model and reasoning-level names are read from the UI instead of being hard-coded, cached in JSON and refreshed automatically. Promo banners, settings and models locked on your plan (e.g. on the free plan) are filtered out of the list.
 - **`yolo` mode:** plans are approved and commands run without asking. See the [warning](#disclaimer-and-privacy).
 - **Stop** a running answer and **continue** it (`/continue`).
+- **English and Russian:** the CLI, the IDE and the prompts sent to the model speak both languages. Pick one with `--lang`, `/lang` or the IDE settings; by default it follows your system language.
+- **Vibi the cat:** the CLI has its own look with the Vibe mascot, see [Language and Vibi](#language-and-vibi).
 
 ---
 
@@ -117,6 +119,7 @@ python vibe.py --dir . "add a logout button to the header"
 | `--transport` | `auto`, `file`, `paste`, `inline`, `zip`, `base64` |
 | `--auto-context` | `on` / `off` |
 | `--prompt-style` | `auto` / `classic` |
+| `--lang` | `en`, `ru` or `auto` (system language) |
 
 ### Chat commands
 
@@ -130,6 +133,7 @@ python vibe.py --dir . "add a logout button to the header"
 | `/autocontext on\|off` | auto context |
 | `/autocontext_set <files> [tokens]` | auto-context limits |
 | `/promptstyle auto\|classic` | prompt texts |
+| `/lang en\|ru\|auto` | interface and prompt language |
 | `/attach <path>` | attach a zip or image to the next message |
 | `/attach_clear` | remove attachments |
 | `/yolo on\|off` | no-confirmation mode |
@@ -184,6 +188,31 @@ A graphical shell: chat, project tree with file selection for the context, chang
 
 ---
 
+## Language and Vibi
+
+**Language.** Vibe CLI and Vibe IDE come in English and Russian. The language is chosen in this order:
+
+1. `--lang en|ru` or the `/lang en|ru` command (saved to `.vibe.json` as `"language"`; the IDE has a selector in *Settings → Appearance*);
+2. the `VIBE_LANG` environment variable (`en`, `ru` or `auto`);
+3. `auto`: the language of your operating system (Russian system → Russian, anything else → English).
+
+The language also decides which prompt pack is sent to the chat (`core/prompts.py` for Russian, `core/prompts_en.py` for English). The patch-format markers (`<<<FILE>>>`, `SEARCH/REPLACE` …) are identical in both, so patching works the same.
+
+**Vibi.** The CLI has its own look built around Vibi, a square pixel-art cat (purple body, teal ear tips, pink cheeks, a little «ω» mouth). She greets you in the banner and plays an idle animation (blinks, looks around, twitches an ear) for a few seconds; and with every new message she runs back and forth across the terminal while the model is answering. In terminals that can show images (Windows Terminal 1.22+, Kitty, Ghostty, iTerm2, WezTerm) she is a real picture, elsewhere colour pixels, and on small or plain terminals a small blinking `[•ω•]` next to the status line. The classic console window (cmd) cannot show pictures, so `run_vibe.bat` reopens itself in Windows Terminal when it is installed (`VIBE_NO_WT=1` skips that). Force a mode with `VIBE_IMAGES=sixel|kitty|iterm|blocks`; if the picture is too big or small in Windows Terminal, set `VIBE_IMG_SCALE` or `VIBE_CELL_PX=WxH`. Her face in the prompt shows how the last task went (`[•ω•]` idle, `[^ω^]` success, `[×n×]` error, `[-ω-]` stopped). She has moods: idle, happy, think, work, error, sleep. Colours match Vibe IDE (violet `#7c5cff` → teal `#14d6c4`). Use `VIBE_NO_ANIM=1` to turn the animation off; with `VIBE_ASCII=1`, or if the terminal encoding is not UTF-8, a plain ASCII Vibi is used (`VIBE_UNICODE=1` forces the block-character one).
+
+```
+  ╱╲             ╱╲
+ ╱  ╲___________╱  ╲
+ │                 │
+ │   ●         ●   │
+ │        ω        │
+ ╰─────────────────╯
+```
+
+**Adding a language.** Source strings in the code are Russian and act as message ids: `t("Русский текст")` returns the text from `core/locale_en.py` (CLI) or `.vibeide/renderer/locale-en.js` (IDE). A missing entry falls back to the source text. `python -m pytest tests` (`tests/test_i18n.py`) and `node .vibeide/check-i18n.js` check that no string is missing.
+
+---
+
 ## Configuration
 
 Project settings live in `.vibe.json` (created by `/init`).
@@ -200,6 +229,7 @@ Project settings live in `.vibe.json` (created by `/init`).
   "auto_context_max_files": 24,
   "auto_context_budget": 30000,
   "prompt_style": "auto",
+  "language": "auto",
   "ignore": ["docs/"],
   "selector_overrides": {}
 }
@@ -208,7 +238,7 @@ Project settings live in `.vibe.json` (created by `/init`).
 - `.vibeignore` — exclusions from the context, `.gitignore` syntax.
 - `VIBE.md` — your project rules, added to the context.
 - `selector_overrides` — your own CSS selectors if a site changes its UI, e.g. `{"aistudio": {"model_btn": ["..."]}}`.
-- Environment variables: `VIBE_PROVIDER`, `VIBE_MODEL`, `VIBE_TRANSPORT`, `VIBE_AUTO_CONTEXT`, `VIBE_PROMPT_STYLE`, `VIBE_VERIFY_CMD` and others, see `.env.example`.
+- Environment variables: `VIBE_PROVIDER`, `VIBE_MODEL`, `VIBE_TRANSPORT`, `VIBE_AUTO_CONTEXT`, `VIBE_PROMPT_STYLE`, `VIBE_VERIFY_CMD`, `VIBE_LANG` and others, see `.env.example`.
 - Whether to commit `.vibe.json` and `VIBE.md` to your own project is up to you: `VIBE.md` is useful to share with a team, `.vibe.json` is more personal.
 
 ---
@@ -229,7 +259,10 @@ Project settings live in `.vibe.json` (created by `/init`).
 ```
 vibe.py                 CLI entry point
 core/
-  prompts.py            prompt texts and per-task hints
+  prompts.py            Russian prompt texts and per-task hints
+  prompts_en.py         English prompt texts
+  i18n.py, locale_en.py interface language: t() and the English catalog
+  mascot.py, sprites.py, vibi_run.py, ui.py   Vibi the mascot (pixel frames, running cat) and the look of the CLI
   gemini_bridge.py      chat control through Chrome (sending, attachments, models)
   providers.py          Gemini / Claude / AI Studio profiles
   config.py             settings, transport formats
@@ -268,6 +301,7 @@ tests/                  tests
 ```bash
 pip install pytest
 python -m pytest tests
+node .vibeide/check-i18n.js    # IDE translations
 ```
 
 ## Contributing
@@ -287,7 +321,7 @@ MIT, see [LICENSE](LICENSE).
 
 [English](#vibe) | **Русский**
 
-**Статус:** бета · **Версия:** `0.01.0` · **ОС:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **Лицензия:** MIT
+**Статус:** бета · **Версия:** `0.01.1` · **ОС:** Windows · **Python:** 3.10+ · **IDE:** Electron (Node.js 18+) · **Лицензия:** MIT
 
 > Локальный «вайбкодер» на **подписке на чат**, без платного API. Vibe управляет вашим Chrome с открытым чатом ИИ (Gemini, Claude или Google AI Studio), отправляет туда контекст проекта, получает ответ и применяет патчи к файлам.
 
@@ -331,6 +365,8 @@ python vibe.py --dir путь/к/проекту
 - **Модели с сайта:** названия моделей и уровней рассуждений читаются из интерфейса, а не зашиты в код; список кэшируется в JSON и обновляется автоматически. Рекламные баннеры, настройки и модели, недоступные в вашем плане (например, на free), в список не попадают.
 - **Режим `yolo`:** планы утверждаются и команды выполняются без вопросов. См. [предупреждение](#отказ-от-ответственности-и-приватность).
 - **Остановка** ответа и **продолжение** (`/continue`).
+- **Английский и русский:** CLI, IDE и промпты для модели работают на обоих языках. Язык выбирается через `--lang`, `/lang` или настройки IDE; по умолчанию — язык системы.
+- **Кот Vibi:** у CLI свой облик с маскотом Vibe, см. [Язык и Vibi](#язык-и-vibi).
 
 ---
 
@@ -400,6 +436,7 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 | `--transport` | `auto`, `file`, `paste`, `inline`, `zip`, `base64` |
 | `--auto-context` | `on` / `off` |
 | `--prompt-style` | `auto` / `classic` |
+| `--lang` | `en`, `ru` или `auto` (язык системы) |
 
 ### Команды в чате
 
@@ -413,6 +450,7 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 | `/autocontext on\|off` | автоподбор контекста |
 | `/autocontext_set <файлов> [токенов]` | лимиты автоподбора |
 | `/promptstyle auto\|classic` | тексты промптов |
+| `/lang en\|ru\|auto` | язык интерфейса и промптов |
 | `/attach <путь>` | прикрепить zip или изображение к следующему сообщению |
 | `/attach_clear` | убрать вложения |
 | `/yolo on\|off` | режим без подтверждений |
@@ -467,6 +505,22 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 
 ---
 
+## Язык и Vibi
+
+**Язык.** Vibe CLI и Vibe IDE работают на английском и русском. Язык выбирается так:
+
+1. `--lang en|ru` или команда `/lang en|ru` (сохраняется в `.vibe.json` как `"language"`; в IDE — переключатель в *Настройки → Оформление*);
+2. переменная окружения `VIBE_LANG` (`en`, `ru` или `auto`);
+3. `auto`: язык операционной системы (русская система → русский, любая другая → английский).
+
+Язык определяет и набор промптов, который уходит в чат (`core/prompts.py` — русский, `core/prompts_en.py` — английский). Маркеры формата патчей (`<<<FILE>>>`, `SEARCH/REPLACE` …) в обоих одинаковы, поэтому патчи применяются так же.
+
+**Vibi.** У CLI свой облик вокруг Vibi — квадратного пиксельного кота (фиолетовое тело, бирюзовые кончики ушей, розовые щёчки, маленький рот «ω»). Она встречает вас в баннере и несколько секунд играет idle-анимацию (моргает, оглядывается, дёргает ухом); а с каждым новым сообщением бегает по терминалу туда-сюда, пока модель отвечает. В терминалах с поддержкой картинок (Windows Terminal 1.22+, Kitty, Ghostty, iTerm2, WezTerm) это настоящая картинка, в остальных — цветные пиксели, а в маленьких и простых терминалах — маленькая моргающая мордочка `[•ω•]` рядом со статусом. Классическое окно консоли (cmd) картинки показать не может, поэтому `run_vibe.bat` сам перезапускается в Windows Terminal, если он установлен (`VIBE_NO_WT=1` отключает это). Режим можно задать через `VIBE_IMAGES=sixel|kitty|iterm|blocks`; если в Windows Terminal кот слишком большой или маленький — `VIBE_IMG_SCALE` или `VIBE_CELL_PX=ШxВ`. Мордочка в строке ввода показывает, как прошла прошлая задача (`[•ω•]` ждёт, `[^ω^]` успех, `[×n×]` ошибка, `[-ω-]` остановлено). Настроения: idle, happy, think, work, error, sleep. Цвета как в Vibe IDE (фиолетовый `#7c5cff` → бирюзовый `#14d6c4`). `VIBE_NO_ANIM=1` выключает анимацию; при `VIBE_ASCII=1` или если кодировка терминала не UTF-8, рисуется простая ASCII-версия (`VIBE_UNICODE=1` принудительно включает версию из блоков).
+
+**Новый язык.** Строки в коде русские и служат ключами: `t("Русский текст")` берёт текст из `core/locale_en.py` (CLI) или `.vibeide/renderer/locale-en.js` (IDE). Если перевода нет, показывается исходный текст. Тесты `tests/test_i18n.py` и `node .vibeide/check-i18n.js` проверяют, что ничего не пропущено.
+
+---
+
 ## Конфигурация
 
 Настройки проекта лежат в `.vibe.json` (создаётся командой `/init`).
@@ -483,6 +537,7 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
   "auto_context_max_files": 24,
   "auto_context_budget": 30000,
   "prompt_style": "auto",
+  "language": "auto",
   "ignore": ["docs/"],
   "selector_overrides": {}
 }
@@ -491,7 +546,7 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 - `.vibeignore` — исключения из контекста, синтаксис как в `.gitignore`.
 - `VIBE.md` — ваши правила для проекта, добавляются в контекст.
 - `selector_overrides` — свои CSS-селекторы, если сайт поменял интерфейс, например `{"aistudio": {"model_btn": ["..."]}}`.
-- Переменные окружения: `VIBE_PROVIDER`, `VIBE_MODEL`, `VIBE_TRANSPORT`, `VIBE_AUTO_CONTEXT`, `VIBE_PROMPT_STYLE`, `VIBE_VERIFY_CMD` и другие, см. `.env.example`.
+- Переменные окружения: `VIBE_PROVIDER`, `VIBE_MODEL`, `VIBE_TRANSPORT`, `VIBE_AUTO_CONTEXT`, `VIBE_PROMPT_STYLE`, `VIBE_VERIFY_CMD`, `VIBE_LANG` и другие, см. `.env.example`.
 - Коммитить ли `.vibe.json` и `VIBE.md` в свой проект, решаете вы: `VIBE.md` удобно делиться с командой, `.vibe.json` скорее личный.
 
 ---
@@ -512,7 +567,10 @@ python vibe.py --dir . "добавь кнопку выхода в шапку"
 ```
 vibe.py                 точка входа CLI
 core/
-  prompts.py            тексты промптов и подсказки по типам задач
+  prompts.py            русские тексты промптов и подсказки по типам задач
+  prompts_en.py         английские тексты промптов
+  i18n.py, locale_en.py язык интерфейса: t() и английский каталог
+  mascot.py, sprites.py, vibi_run.py, ui.py   маскот Vibi (пиксельные кадры, бегущий кот) и оформление CLI
   gemini_bridge.py      управление чатом через Chrome (отправка, вложения, модели)
   providers.py          профили Gemini / Claude / AI Studio
   config.py             настройки, форматы отправки
@@ -551,6 +609,7 @@ tests/                  тесты
 ```bash
 pip install pytest
 python -m pytest tests
+node .vibeide/check-i18n.js    # переводы IDE
 ```
 
 ## Участие в проекте

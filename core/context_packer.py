@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 import pathspec
 from .config import DEFAULT_IGNORE_PATTERNS, VibeConfig
+from .i18n import t
 
 # Служебные папки Vibe: бэкапы патчей и профили Chrome. Папка .vibeide (код IDE) сюда НЕ входит.
 SERVICE_DIRS = {".vibe_backups"}
@@ -75,7 +76,7 @@ class ContextPacker:
         return collected
 
     def build_tree_string(self, files: List[Path]) -> str:
-        lines = [f"Корень проекта: {self.root.name}/"]
+        lines = [t("Корень проекта: {name}/", name=self.root.name)]
         for f in files:
             rel = f.relative_to(self.root).as_posix()
             lines.append(f"  ├── {rel}")
@@ -144,7 +145,7 @@ class ContextPacker:
                 except Exception:
                     pass
             else:
-                parts.append(f"=== FILE: {rel} === (удалён)")
+                parts.append(f"=== FILE: {rel} === " + t("(удалён)"))
         return "\n".join(parts)
 
     def write_context_bundle_file(

@@ -60,7 +60,15 @@ def test_packer_and_pack_files_and_canary():
     path, n, _ = pk.write_context_bundle_file(canary="abc123")
     txt = path.read_text()
     assert n == 2 and "VIBE_CANARY=abc123" in txt and "=== FILE: b.txt ===" in txt
-    assert "hello" in pk.pack_files(["b.txt"]) and "(удалён)" in pk.pack_files(["gone.txt"])
+    assert "hello" in pk.pack_files(["b.txt"])
+    from core import i18n
+    try:
+        i18n.set_lang("ru")
+        assert "(удалён)" in pk.pack_files(["gone.txt"])
+        i18n.set_lang("en")
+        assert "(deleted)" in pk.pack_files(["gone.txt"])
+    finally:
+        i18n.set_lang("en")
 
 
 def test_config_model_transport_persist():

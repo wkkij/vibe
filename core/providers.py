@@ -6,6 +6,8 @@
 from dataclasses import dataclass, field, replace
 from typing import Dict, List, Tuple
 
+from .i18n import t
+
 
 @dataclass(frozen=True)
 class Provider:
@@ -162,7 +164,13 @@ MODEL_CATALOG: Dict[str, List[dict]] = {
 
 
 def catalog_for(key: str) -> List[dict]:
-    return [dict(m) for m in MODEL_CATALOG.get(key, [])]
+    """Каталог моделей; описания — на языке интерфейса."""
+    out = []
+    for m in MODEL_CATALOG.get(key, []):
+        item = dict(m)
+        item["desc"] = t(item.get("desc", ""))
+        out.append(item)
+    return out
 
 
 def get_provider(key: str, overrides: Dict[str, Dict[str, str]] = None) -> Provider:

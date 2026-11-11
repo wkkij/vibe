@@ -5,6 +5,14 @@ const path = require('path');
 const http = require('http');
 const { spawn, execFile } = require('child_process');
 
+/* ---------------- язык интерфейса (ru / en) ----------------
+   Строки в коде русские и служат ключами; английский — в renderer/locale-en.js (его же грузит окно).
+   Язык присылает окно при старте (set-lang) и вместе с запуском сессии. */
+const EN = require('./renderer/locale-en.js');
+let LANG = /^ru/i.test(app.getLocale() || '') ? 'ru' : 'en';
+const tr = (s) => (LANG === 'en' && Object.prototype.hasOwnProperty.call(EN, s) ? EN[s] : s);
+const cliLang = () => ({ VIBE_LANG: LANG });
+
 const OUT_NAME = '.vibe_context_bundle.txt';
 const SKIP_NAMES = new Set([OUT_NAME, '.vibe_backups', '.vibe_last_screenshot.png']);
 const MAX_LIST = 3000;
@@ -159,14 +167,14 @@ function chromeScript(root, provider) {
 
 async function launchChrome(provider, project) {
   const root = findVibeRoot();
-  if (!root) return { ok: false, error: 'Не найден Vibe CLI (vibe.py). Укажите папку в настройках.' };
+  if (!root) return { ok: false, error: tr('Не найден Vibe CLI (vibe.py). Укажите папку в настройках.') };
   const url = cdpUrls(project, root)[provider];
   if (await probe(url)) return { ok: true, already: true };
 
   const script = chromeScript(root, provider);
-  if (!fs.existsSync(script)) return { ok: false, error: 'Нет скрипта запуска Chrome: ' + script };
+  if (!fs.existsSync(script)) return { ok: false, error: tr('Нет скрипта запуска Chrome: ') + script };
 
-  log('info', 'Chrome не запущен — стартую ' + path.basename(script) + ' …');
+  log('info', tr('Chrome не запущен — стартую ') + path.basename(script) + ' …');
   let child;
   try {
     child = spawn('cmd.exe', ['/d', '/s', '/c', '"' + script + '"'], {
@@ -175,21 +183,21 @@ async function launchChrome(provider, project) {
       stdio: 'ignore',
       windowsVerbatimArguments: true
     });
-    child.on('error', (e) => log('err', 'Не удалось запустить скрипт: ' + e.message));
+    child.on('error', (e) => log('err', tr('Не удалось запустить скрипт: ') + e.message));
     child.unref();
   } catch (e) {
-    return { ok: false, error: 'Не удалось запустить скрипт: ' + e.message };
+    return { ok: false, error: tr('Не удалось запустить скрипт: ') + e.message };
   }
 
   const t0 = Date.now();
   while (Date.now() - t0 < 45000) {
     await sleep(700);
     if (await probe(url)) {
-      log('info', 'Chrome отвечает на ' + url + '. Если это первый запуск — войдите в аккаунт в открывшемся окне.');
+      log('info', tr('Chrome отвечает на ') + url + tr('. Если это первый запуск — войдите в аккаунт в открывшемся окне.'));
       return { ok: true, started: true };
     }
   }
-  return { ok: false, error: 'Chrome не ответил на ' + url + ' за 45 секунд' };
+  return { ok: false, error: tr('Chrome не ответил на ') + url + tr(' за 45 секунд') };
 }
 
 function modelsCacheFile() { return path.join(app.getPath('userData'), 'models-cache.json'); }
@@ -202,14 +210,14 @@ ipcMain.handle('models-cache-set', (_e, data) => {
 ipcMain.handle('run-script', (_e, script) => {
   const root = findVibeRoot();
   let p = String(script || '').trim().replace(/^"|"$/g, '');
-  if (!p) return { ok: false, error: 'Пустой путь' };
+  if (!p) return { ok: false, error: tr('Пустой путь') };
   if (!path.isAbsolute(p) && root) p = path.join(root, p);
-  if (!fs.existsSync(p)) return { ok: false, error: 'Скрипт не найден: ' + p };
+  if (!fs.existsSync(p)) return { ok: false, error: tr('Скрипт не найден: ') + p };
   try {
     const child = spawn('cmd.exe', ['/d', '/s', '/c', '"' + p + '"'], { cwd: path.dirname(p), detached: true, stdio: 'ignore', windowsVerbatimArguments: true });
-    child.on('error', (e) => log('err', 'Не удалось запустить ' + path.basename(p) + ': ' + e.message));
+    child.on('error', (e) => log('err', tr('Не удалось запустить ') + path.basename(p) + ': ' + e.message));
     child.unref();
-    log('info', 'Запущен ' + path.basename(p));
+    log('info', tr('Запущен ') + path.basename(p));
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 });
@@ -248,11 +256,13 @@ function killProc() {
   } catch (_) { /* ignore */ }
 }
 
+ipcMain.handle('set-lang', (_e, lang) => { LANG = lang === 'ru' ? 'ru' : 'en'; return LANG; });
+
 ipcMain.handle('session-start', async (_e, o) => {
-  if (proc || starting) return { ok: false, error: 'Сессия уже запущена' };
+  if (proc || starting) return { ok: false, error: tr('Сессия уже запущена') };
   const root = findVibeRoot();
-  if (!root) return { ok: false, error: 'Не найден vibe.py — укажите папку Vibe CLI в настройках' };
-  if (!o || !o.project || !fs.existsSync(o.project)) return { ok: false, error: 'Не выбрана папка проекта' };
+  if (!root) return { ok: false, error: tr('Не найден vibe.py — укажите папку Vibe CLI в настройках') };
+  if (!o || !o.project || !fs.existsSync(o.project)) return { ok: false, error: tr('Не выбрана папка проекта') };
 
   starting = true;
   try {
@@ -278,6 +288,7 @@ ipcMain.handle('session-start', async (_e, o) => {
       PYTHONIOENCODING: 'utf-8',
       PYTHONUTF8: '1',
       VIBE_IDE: '1',
+      VIBE_LANG: LANG,
       VIBE_RESPONSE_TIMEOUT: String(minutes * 60),
       COLUMNS: '110',
       TERM: 'dumb',
@@ -290,10 +301,10 @@ ipcMain.handle('session-start', async (_e, o) => {
     try {
       child = spawn(py, args, { cwd: root, env, windowsHide: true });
     } catch (e) {
-      return { ok: false, error: 'Не удалось запустить Python: ' + e.message };
+      return { ok: false, error: tr('Не удалось запустить Python: ') + e.message };
     }
     proc = child;
-    log('info', 'Vibe CLI запущен (' + path.basename(py) + ', таймаут ответа ' + minutes + ' мин)');
+    log('info', tr('Vibe CLI запущен (') + path.basename(py) + tr(', таймаут ответа ') + minutes + tr(' мин)'));
 
     child.stdout.setEncoding('utf8');
     child.stderr.setEncoding('utf8');
@@ -363,9 +374,9 @@ ipcMain.handle('set-theme', (_e, t) => {
 // Список моделей: короткий одноразовый запуск CLI (--list-models-json), ответ приходит событием models.
 ipcMain.handle('list-models', (_e, o) => new Promise((resolve) => {
   const root = findVibeRoot();
-  if (!root || !o || !o.project) return resolve({ ok: false, error: 'Не найден Vibe CLI или проект' });
+  if (!root || !o || !o.project) return resolve({ ok: false, error: tr('Не найден Vibe CLI или проект') });
   const args = [path.join(root, 'vibe.py'), '--dir', o.project, '--provider', o.provider, '--list-models-json'];
-  const env = Object.assign({}, process.env, { PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', VIBE_IDE: '1', NO_COLOR: '1' });
+  const env = Object.assign({}, process.env, { PYTHONUNBUFFERED: '1', PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1', VIBE_IDE: '1', NO_COLOR: '1' }, cliLang());
   let child;
   try { child = spawn(pythonFor(root), args, { cwd: root, env, windowsHide: true }); } catch (e) { return resolve({ ok: false, error: e.message }); }
   let buf = '';
@@ -386,7 +397,7 @@ ipcMain.handle('list-models', (_e, o) => new Promise((resolve) => {
   child.on('error', (e) => { clearTimeout(timer); resolve({ ok: false, error: e.message }); });
   child.on('close', () => {
     clearTimeout(timer);
-    resolve(result && !result.error ? { ok: true, models: result } : { ok: false, error: (result && result.error) || 'Не удалось получить список (запущен ли Chrome и выполнен ли вход?)' });
+    resolve(result && !result.error ? { ok: true, models: result } : { ok: false, error: (result && result.error) || tr('Не удалось получить список (запущен ли Chrome и выполнен ли вход?)') });
   });
 }));
 
@@ -395,9 +406,9 @@ ipcMain.handle('list-models', (_e, o) => new Promise((resolve) => {
 const ATTACH_EXT = ['zip', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'];
 ipcMain.handle('pick-files', async () => {
   const res = await dialog.showOpenDialog(win, {
-    title: 'Прикрепить файлы',
+    title: tr('Прикрепить файлы'),
     properties: ['openFile', 'multiSelections'],
-    filters: [{ name: 'ZIP и изображения', extensions: ATTACH_EXT }, { name: 'Все файлы', extensions: ['*'] }]
+    filters: [{ name: tr('ZIP и изображения'), extensions: ATTACH_EXT }, { name: tr('Все файлы'), extensions: ['*'] }]
   });
   if (res.canceled) return [];
   return res.filePaths.map((p) => { let size = 0; try { size = fs.statSync(p).size; } catch (_) { /* ignore */ } return { path: p, name: path.basename(p), size }; });
@@ -417,7 +428,7 @@ ipcMain.handle('save-temp', (_e, name, bytes) => {
 
 ipcMain.handle('pick-folder', async (_e, title) => {
   const res = await dialog.showOpenDialog(win, {
-    title: title || 'Выберите папку проекта',
+    title: title || tr('Выберите папку проекта'),
     properties: ['openDirectory']
   });
   if (res.canceled || !res.filePaths.length) return null;
@@ -426,12 +437,12 @@ ipcMain.handle('pick-folder', async (_e, title) => {
 
 ipcMain.handle('pick-vibe-root', async () => {
   const res = await dialog.showOpenDialog(win, {
-    title: 'Папка Vibe CLI (где лежит vibe.py)',
+    title: tr('Папка Vibe CLI (где лежит vibe.py)'),
     properties: ['openDirectory']
   });
   if (res.canceled || !res.filePaths.length) return { ok: false };
   const d = res.filePaths[0];
-  if (!isVibeRoot(d)) return { ok: false, error: 'В этой папке нет vibe.py и core/' };
+  if (!isVibeRoot(d)) return { ok: false, error: tr('В этой папке нет vibe.py и core/') };
   saveCfg({ vibeRoot: d });
   return { ok: true, root: d };
 });

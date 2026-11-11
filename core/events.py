@@ -32,6 +32,8 @@ import re
 import sys
 from typing import Any
 
+from .i18n import t
+
 PREFIX = "@@VIBE "
 
 _MARKUP_RE = re.compile(r"\[/?[a-zA-Z#][^\[\]]*\]")
@@ -88,5 +90,5 @@ class GenerationStopped(Exception):
     """Пользователь остановил генерацию. partial — то, что модель успела написать."""
 
     def __init__(self, partial: str = ""):
-        super().__init__("Генерация остановлена пользователем")
+        super().__init__(t("Генерация остановлена пользователем"))
         self.partial = partial

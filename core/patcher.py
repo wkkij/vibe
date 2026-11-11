@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from .i18n import t
+
 
 @dataclass
 class PatchResult:
@@ -54,16 +56,16 @@ class DiffPatcher:
 
     def undo_last_snapshot(self) -> Tuple[bool, str]:
         if not self.backup_root.exists():
-            return False, "Бэкапы не найдены (.vibe_backups пуст)."
+            return False, t("Бэкапы не найдены (.vibe_backups пуст).")
         snapshots = sorted([d for d in self.backup_root.iterdir() if d.is_dir()], reverse=True)
         if not snapshots:
-            return False, "Нет доступных точек отката."
+            return False, t("Нет доступных точек отката.")
 
         latest = snapshots[0]
         manifest_file = latest / "manifest.json"
         if not manifest_file.exists():
             shutil.rmtree(latest, ignore_errors=True)
-            return False, "Манифест бэкапа поврежден."
+            return False, t("Манифест бэкапа поврежден.")
 
         manifest = json.loads(manifest_file.read_text(encoding="utf-8"))
         restored = []
@@ -76,14 +78,14 @@ class DiffPatcher:
                 if backup_copy.exists():
                     target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(backup_copy, target)
-                    restored.append(f"Восстановлен: {rel_path}")
+                    restored.append(t("Восстановлен: {path}", path=rel_path))
             else:
                 if target.exists():
                     target.unlink()
-                    restored.append(f"Удален (был создан): {rel_path}")
+                    restored.append(t("Удален (был создан): {path}", path=rel_path))
 
         shutil.rmtree(latest, ignore_errors=True)
-        return True, f"Откат снапшота {latest.name} выполнен:\n" + "\n".join(restored)
+        return True, t("Откат снапшота {name} выполнен:", name=latest.name) + "\n" + "\n".join(restored)
 
     def _apply_search_replace_block(self, content: str, search_block: str, replace_block: str) -> Tuple[Optional[str], str]:
         if search_block in content:
@@ -153,15 +155,15 @@ class DiffPatcher:
 
             target_path = (self.root / rel_path).resolve()
             if not self._inside_root(target_path):
-                results.append(PatchResult(rel_path, "FAILED", "Попытка записи за пределы корня проекта"))
+                results.append(PatchResult(rel_path, "FAILED", t("Попытка записи за пределы корня проекта")))
                 continue
 
             try:
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 target_path.write_text(raw_body + "\n", encoding="utf-8")
-                results.append(PatchResult(rel_path, "CREATED", "Файл успешно создан", 1))
+                results.append(PatchResult(rel_path, "CREATED", t("Файл успешно создан"), 1))
             except Exception as e:
-                results.append(PatchResult(rel_path, "FAILED", f"Ошибка создания: {e}"))
+                results.append(PatchResult(rel_path, "FAILED", t("Ошибка создания: {e}", e=e)))
 
         for match in delete_pattern.finditer(response_text):
             rel_path = match.group(1).strip().lstrip("/\\")
@@ -169,9 +171,9 @@ class DiffPatcher:
             if target_path.exists() and self._inside_root(target_path):
                 try:
                     target_path.unlink()
-                    results.append(PatchResult(rel_path, "DELETED", "Файл удален", 1))
+                    results.append(PatchResult(rel_path, "DELETED", t("Файл удален"), 1))
                 except Exception as e:
-                    results.append(PatchResult(rel_path, "FAILED", f"Ошибка удаления: {e}"))
+                    results.append(PatchResult(rel_path, "FAILED", t("Ошибка удаления: {e}", e=e)))
 
         for match in file_pattern.finditer(response_text):
             rel_path = match.group(1).strip().lstrip("/\\")
@@ -179,11 +181,11 @@ class DiffPatcher:
             target_path = (self.root / rel_path).resolve()
 
             if not self._inside_root(target_path):
-                results.append(PatchResult(rel_path, "FAILED", "Путь вне корня проекта"))
+                results.append(PatchResult(rel_path, "FAILED", t("Путь вне корня проекта")))
                 continue
 
             if not target_path.exists():
-                results.append(PatchResult(rel_path, "FAILED", "Файл для патча не найден на диске"))
+                results.append(PatchResult(rel_path, "FAILED", t("Файл для патча не найден на диске")))
                 continue
 
             raw = target_path.read_bytes().decode("utf-8", errors="replace")
@@ -191,7 +193,7 @@ class DiffPatcher:
             content = raw.replace("\r\n", "\n")
             sr_blocks = list(sr_pattern.finditer(body))
             if not sr_blocks:
-                results.append(PatchResult(rel_path, "FAILED", "Не найдены блоки SEARCH/REPLACE внутри <<<FILE>>>"))
+                results.append(PatchResult(rel_path, "FAILED", t("Не найдены блоки SEARCH/REPLACE внутри <<<FILE>>>")))
                 continue
 
             applied_count = 0
@@ -211,11 +213,11 @@ class DiffPatcher:
             if applied_count > 0:
                 out = content.replace("\n", eol) if eol == "\r\n" else content
                 target_path.write_bytes(out.encode("utf-8"))
-                msg = f"Применено блоков: {applied_count}/{len(sr_blocks)}"
+                msg = t("Применено блоков: {applied}/{total}", applied=applied_count, total=len(sr_blocks))
                 if failed_blocks > 0:
-                    msg += f" (Не совпало блоков: {failed_blocks})"
+                    msg += t(" (Не совпало блоков: {n})", n=failed_blocks)
                 results.append(PatchResult(rel_path, "MODIFIED", msg, applied_count, failed_texts))
             else:
-                results.append(PatchResult(rel_path, "FAILED", f"Ни один из {len(sr_blocks)} блоков SEARCH не совпал с файлом", 0, failed_texts))
+                results.append(PatchResult(rel_path, "FAILED", t("Ни один из {n} блоков SEARCH не совпал с файлом", n=len(sr_blocks)), 0, failed_texts))
 
         return results, commands

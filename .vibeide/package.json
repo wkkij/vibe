@@ -1,7 +1,7 @@
 {
   "name": "vibe-ide",
-  "version": "0.01.0",
-  "description": "Vibe IDE — оболочка для Vibe CLI: чат, темы, автоподбор контекста, Gemini / Claude / AI Studio",
+  "version": "0.01.1",
+  "description": "Vibe IDE — a shell for Vibe CLI: chat, themes, automatic context picking, Gemini / Claude / AI Studio",
   "author": "wkkij",
   "license": "MIT",
   "main": "main.js",

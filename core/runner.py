@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from .i18n import t
+
 
 @dataclass
 class CommandExecResult:
@@ -24,7 +26,7 @@ class CommandExecResult:
             out += f"--- STDERR ---\n{self.stderr.strip()}\n"
         if len(out) > max_chars:
             half = max_chars // 2
-            out = out[:half] + "\n...[ОБРЕЗАНО]...\n" + out[-half:]
+            out = out[:half] + "\n..." + t("[ОБРЕЗАНО]") + "...\n" + out[-half:]
         return out
 
 
@@ -55,14 +57,14 @@ class TerminalRunner:
                 command=command,
                 returncode=124,
                 stdout=e.stdout or "",
-                stderr=f"Команда превысила таймаут ({timeout_sec} сек).",
+                stderr=t("Команда превысила таймаут ({sec} сек).", sec=timeout_sec),
             )
         except Exception as e:
             return CommandExecResult(
                 command=command,
                 returncode=1,
                 stdout="",
-                stderr=f"Ошибка запуска процесса: {e}",
+                stderr=t("Ошибка запуска процесса: {e}", e=e),
             )
 
 

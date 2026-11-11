@@ -16,43 +16,43 @@
     aistudio: { title: 'AI Studio', host: 'aistudio.google.com' }
   };
   const THEMES = [
-    { id: 'system', name: 'Системная', sub: 'авто' },
-    { id: 'graphite', name: 'Графит', sub: 'тёмная' },
-    { id: 'noir', name: 'Нуар', sub: 'тёмная' },
-    { id: 'midnight', name: 'Полночь', sub: 'тёмная' },
-    { id: 'aurora', name: 'Аврора', sub: 'тёмная' },
-    { id: 'sunset', name: 'Закат', sub: 'тёмная' },
-    { id: 'light', name: 'Светлая', sub: 'светлая' },
-    { id: 'paper', name: 'Бумага', sub: 'светлая' }
+    { id: 'system', name: tr('Системная'), sub: tr('авто') },
+    { id: 'graphite', name: tr('Графит'), sub: tr('тёмная') },
+    { id: 'noir', name: tr('Нуар'), sub: tr('тёмная') },
+    { id: 'midnight', name: tr('Полночь'), sub: tr('тёмная') },
+    { id: 'aurora', name: tr('Аврора'), sub: tr('тёмная') },
+    { id: 'sunset', name: tr('Закат'), sub: tr('тёмная') },
+    { id: 'light', name: tr('Светлая'), sub: tr('светлая') },
+    { id: 'paper', name: tr('Бумага'), sub: tr('светлая') }
   ];
   const ACCENTS = ['', '#7c5cff', '#4d8dff', '#14d6c4', '#2fe0a5', '#f5b84a', '#ff7a59', '#ff5fa2'];
-  const STYLES = [['auto', 'Авто — каждый раз новый текст'], ['classic', 'Классика — один и тот же текст']];
+  const STYLES = [['auto', tr('Авто — каждый раз новый текст')], ['classic', tr('Классика — один и тот же текст')]];
   const TRANSPORTS = [
-    ['auto', 'Авто'], ['file', 'Файл .txt'], ['paste', 'Файл вставкой'], ['inline', 'Текстом в сообщении'], ['zip', 'ZIP-архив'], ['base64', 'Base64-файл']
+    ['auto', tr('Авто')], ['file', tr('Файл .txt')], ['paste', tr('Файл вставкой')], ['inline', tr('Текстом в сообщении')], ['zip', tr('ZIP-архив')], ['base64', tr('Base64-файл')]
   ];
   const TRANSPORT_DESC = {
-    auto: 'Пробует по очереди: файл → вставка → ZIP → base64-файл → текст, пока чат не увидит контекст',
-    file: 'Контекст — обычным файлом через кнопку «+» в чате',
-    paste: 'Тот же .txt, но вставляется как из буфера обмена (paste/drop) — если кнопка «+» недоступна',
-    inline: 'Весь контекст — прямо в тексте сообщения, без вложений',
-    zip: 'Контекст упаковывается в .zip и прикрепляется файлом (меньше размер)',
-    base64: 'Контекст кодируется в base64 и прикрепляется отдельным .txt-файлом'
+    auto: tr('Пробует по очереди: файл → вставка → ZIP → base64-файл → текст, пока чат не увидит контекст'),
+    file: tr('Контекст — обычным файлом через кнопку «+» в чате'),
+    paste: tr('Тот же .txt, но вставляется как из буфера обмена (paste/drop) — если кнопка «+» недоступна'),
+    inline: tr('Весь контекст — прямо в тексте сообщения, без вложений'),
+    zip: tr('Контекст упаковывается в .zip и прикрепляется файлом (меньше размер)'),
+    base64: tr('Контекст кодируется в base64 и прикрепляется отдельным .txt-файлом')
   };
   const COMMANDS = [
-    ['/plan', 'сначала план, потом код'], ['/fix', 'прогнать проверку и починить'], ['/undo', 'откатить последний патч'],
-    ['/context', 'что попадёт в контекст'], ['/reset', 'новый чат'], ['/continue', 'продолжить остановленный ответ'],
-    ['/autocontext', 'on | off — автоподбор файлов'], ['/promptstyle', 'тексты промптов'], ['/attach', 'прикрепить файл'], ['/yolo', 'on | off — без подтверждений'], ['/transport', 'формат отправки'], ['/model', 'модель'],
-    ['/reasoning', 'уровень рассуждений'], ['/verify_cmd', 'команда проверки'], ['/check_ui', 'проверить фронтенд'], ['/help', 'справка']
+    ['/plan', tr('сначала план, потом код')], ['/fix', tr('прогнать проверку и починить')], ['/undo', tr('откатить последний патч')],
+    ['/context', tr('что попадёт в контекст')], ['/reset', tr('новый чат')], ['/continue', tr('продолжить остановленный ответ')],
+    ['/autocontext', tr('on | off — автоподбор файлов')], ['/promptstyle', tr('тексты промптов')], ['/attach', tr('прикрепить файл')], ['/yolo', tr('on | off — без подтверждений')], ['/transport', tr('формат отправки')], ['/model', tr('модель')],
+    ['/reasoning', tr('уровень рассуждений')], ['/verify_cmd', tr('команда проверки')], ['/check_ui', tr('проверить фронтенд')], ['/help', tr('справка')], ['/lang', tr('язык интерфейса')]
   ];
-  const STEPS = ['Контекст', 'Отправка', 'Размышление', 'Ответ', 'Применение', 'Проверка'];
+  const STEPS = [tr('Контекст'), tr('Отправка'), tr('Размышление'), tr('Ответ'), tr('Применение'), tr('Проверка')];
   const PHASE_STEP = { packing: 0, selecting: 0, sending: 1, waiting: 1, thinking: 2, answering: 3, applying: 4, verifying: 5, healing: 5, checking_ui: 5 };
   const PHASE_TEXT = {
-    packing: 'Собираю контекст…', selecting: 'Подбираю файлы под задачу…', sending: 'Отправляю в чат…', waiting: 'Жду начала ответа…',
-    thinking: 'Модель думает…', answering: 'Модель отвечает…', applying: 'Применяю патчи…', verifying: 'Проверяю сборку…',
-    healing: 'Исправляю ошибки…', checking_ui: 'Проверяю интерфейс…', idle: 'Готово'
+    packing: tr('Собираю контекст…'), selecting: tr('Подбираю файлы под задачу…'), sending: tr('Отправляю в чат…'), waiting: tr('Жду начала ответа…'),
+    thinking: tr('Модель думает…'), answering: tr('Модель отвечает…'), applying: tr('Применяю патчи…'), verifying: tr('Проверяю сборку…'),
+    healing: tr('Исправляю ошибки…'), checking_ui: tr('Проверяю интерфейс…'), idle: tr('Готово')
   };
   const STEP_ICONS = ['layers', 'send', 'brain', 'chat', 'file', 'shield'];
-  const ACTION_TEXT = { MODIFIED: 'изменён', CREATED: 'создан', DELETED: 'удалён', FAILED: 'ошибка' };
+  const ACTION_TEXT = { MODIFIED: tr('изменён'), CREATED: tr('создан'), DELETED: tr('удалён'), FAILED: tr('ошибка') };
 
   const ICONS = {
     chat: [['path', 'M21 11.5a8.4 8.4 0 0 1-12.2 7.5L3.5 20.5l1.4-4.8A8.4 8.4 0 1 1 21 11.5z'], ['path', 'M8.5 10.5h7M8.5 13.5h4']],
@@ -159,9 +159,9 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
   }
   function fmtBytes(n) {
-    if (n < 1024) return n + ' Б';
-    if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' КБ';
-    return (n / (1024 * 1024)).toFixed(1) + ' МБ';
+    if (n < 1024) return n + tr(' Б');
+    if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + tr(' КБ');
+    return (n / (1024 * 1024)).toFixed(1) + tr(' МБ');
   }
   const fmtNum = (n) => Number(n).toLocaleString('ru-RU');
   const baseName = (p) => String(p).split(/[\\/]/).filter(Boolean).pop() || String(p);
@@ -239,7 +239,7 @@
     const av = el('span', 'avatar'); av.appendChild(ico('spark', 'sm'));
     const status = el('span', 'status');
     const spin = el('span', 'spin');
-    const label = el('span', null, 'Запускаю…');
+    const label = el('span', null, tr('Запускаю…'));
     status.append(spin, label);
     const timer = el('span', 'timer', '00:00');
     const actions = el('div', 'turn-actions');
@@ -256,14 +256,14 @@
     const patches = el('div', 'rowlist');
     const asks = el('div', 'asks');
     const logBox = el('details', 'logbox hidden');
-    logBox.appendChild(el('summary', null, 'Журнал запуска'));
+    logBox.appendChild(el('summary', null, tr('Журнал запуска')));
     const logPre = el('pre');
     logBox.appendChild(logPre);
     body.append(ctxline, live, answers, patches, asks, logBox);
     box.append(head, stepper, body);
     feed.appendChild(box);
     const T = { box, status, spin, label, timer, actions, steps, ctxline, live, liveMeta, liveText, answers, patches, asks, logBox, logPre, start: Date.now(), done: false, phase: '', ops: {}, stopBtn: null };
-    const sb = el('button', 'btn small danger', 'Остановить');
+    const sb = el('button', 'btn small danger', tr('Остановить'));
     sb.addEventListener('click', stopGeneration);
     T.stopBtn = sb;
     actions.appendChild(sb);
@@ -281,7 +281,7 @@
     if (!T || T.done) return;
     T.phase = ph;
     let text = PHASE_TEXT[ph] || ph;
-    if (ph === 'thinking' && !S.showThink) text = 'Модель работает…';
+    if (ph === 'thinking' && !S.showThink) text = tr('Модель работает…');
     T.label.textContent = text;
     T.status.querySelector('.think') && T.status.querySelector('.think').remove();
     if (ph === 'thinking' && S.showThink) { const t = el('span', 'think'); t.append(el('i'), el('i'), el('i')); T.status.appendChild(t); }
@@ -294,7 +294,7 @@
     const T = S.turn;
     if (T && !T.done) {
       T.timer.textContent = fmtTime(Date.now() - T.start);
-      $('sbPhase').textContent = (PHASE_TEXT[S.phase] || 'работает') + ' · ' + fmtTime(Date.now() - T.start);
+      $('sbPhase').textContent = (PHASE_TEXT[S.phase] || tr('работает')) + ' · ' + fmtTime(Date.now() - T.start);
     }
   }, 1000);
 
@@ -306,18 +306,18 @@
     T.timer.textContent = fmtTime(Date.now() - T.start);
     T.spin.remove();
     T.status.querySelector('.think') && T.status.querySelector('.think').remove();
-    T.label.textContent = o.stopped ? 'Остановлено' : o.failed ? 'Ошибка' : 'Готово за ' + fmtTime(Date.now() - T.start);
+    T.label.textContent = o.stopped ? tr('Остановлено') : o.failed ? tr('Ошибка') : tr('Готово за ') + fmtTime(Date.now() - T.start);
     T.steps.forEach((s) => { s.classList.remove('cur'); if (!o.stopped) s.classList.add('done'); });
     T.live.classList.add('hidden');
     T.stopBtn.remove();
     if (o.stopped) {
       const cont = el('button', 'btn small primary');
-      cont.append(ico('play', 'sm'), document.createTextNode(' Продолжить'));
-      cont.addEventListener('click', () => { cont.remove(); enqueue('/continue', { label: '↻ Продолжить ответ' }); });
+      cont.append(ico('play', 'sm'), document.createTextNode(tr(' Продолжить')));
+      cont.addEventListener('click', () => { cont.remove(); enqueue('/continue', { label: tr('↻ Продолжить ответ') }); });
       T.actions.appendChild(cont);
     }
     if (S.notify && document.hidden && 'Notification' in window) {
-      try { new Notification('Vibe IDE', { body: o.stopped ? 'Ответ остановлен' : 'Задача завершена' }); } catch (_) { /* ignore */ }
+      try { new Notification('Vibe IDE', { body: o.stopped ? tr('Ответ остановлен') : tr('Задача завершена') }); } catch (_) { /* ignore */ }
     }
   }
 
@@ -326,7 +326,7 @@
   function opCard(seg) {
     const op = el('div', 'op');
     const head = el('div', 'op-head');
-    const kinds = { edit: ['ПРАВКА', 'edit', 'file'], create: ['НОВЫЙ', 'create', 'plus'], delete: ['УДАЛЕНИЕ', 'delete', 'x'], cmd: ['КОМАНДА', 'cmd', 'term'] };
+    const kinds = { edit: [tr('ПРАВКА'), 'edit', 'file'], create: [tr('НОВЫЙ'), 'create', 'plus'], delete: [tr('УДАЛЕНИЕ'), 'delete', 'x'], cmd: [tr('КОМАНДА'), 'cmd', 'term'] };
     const k = kinds[seg.type];
     head.append(ico(k[2], 'sm'), el('span', 'op-kind ' + k[1], k[0]), el('span', 'op-path', seg.path || seg.command));
     const state = el('span', 'op-state');
@@ -339,10 +339,10 @@
         b.search.split('\n').forEach((t) => addLine('del', '−', t));
         b.replace.split('\n').forEach((t) => addLine('add', '+', t));
       });
-      if (!seg.blocks.length) addLine('sep', '', 'нет SEARCH/REPLACE-блоков');
+      if (!seg.blocks.length) addLine('sep', '', tr('нет SEARCH/REPLACE-блоков'));
     } else if (seg.type === 'create') seg.content.split('\n').forEach((t) => addLine('add', '+', t));
     else if (seg.type === 'cmd') addLine('', '$', seg.command);
-    else addLine('del', '−', 'файл будет удалён');
+    else addLine('del', '−', tr('файл будет удалён'));
     head.addEventListener('click', () => op.classList.toggle('open'));
     if (seg.type === 'delete' || seg.type === 'cmd') op.classList.add('open');
     op.append(head, body);
@@ -354,7 +354,7 @@
     T.live.classList.add('hidden');
     const box = el('div', 'answer');
     const title = el('div', 'answer-title' + (ev.kind === 'partial' ? ' partial' : ''));
-    title.textContent = String(ev.title || 'Ответ').replace(/^[^\p{L}\p{N}]+/u, '');
+    title.textContent = String(ev.title || tr('Ответ')).replace(/^[^\p{L}\p{N}]+/u, '');
     box.appendChild(title);
     for (const seg of MD.parseOps(ev.text || '')) {
       if (seg.type === 'text') box.appendChild(MD.render(seg.text, (u) => api.openExternal(u)));
@@ -374,7 +374,7 @@
     const row = el('div', 'item ' + (failed ? 'fail' : 'good'));
     row.append(ico(failed ? 'x' : 'check', 'sm'), el('span', 'nm', ev.file), el('span', 'st', (ACTION_TEXT[ev.action] || ev.action) + (ev.message ? ' · ' + ev.message : '')));
     T.patches.appendChild(row);
-    for (const st of T.ops[ev.file] || []) { st.textContent = failed ? 'не применено' : 'применено'; st.className = 'op-state ' + (failed ? 'err' : 'ok'); }
+    for (const st of T.ops[ev.file] || []) { st.textContent = failed ? tr('не применено') : tr('применено'); st.className = 'op-state ' + (failed ? 'err' : 'ok'); }
     S.changes.unshift({ file: ev.file, action: ev.action, message: ev.message, at: new Date() });
     renderChanges();
     scrollDown();
@@ -386,28 +386,28 @@
     row.append(ico(kind === 'ok' ? 'check' : kind === 'err' ? 'x' : 'term', 'sm'), el('span', 'nm', text));
     T.patches.appendChild(row);
     if (details) {
-      const d = el('details', 'logbox'); d.appendChild(el('summary', null, 'Вывод')); d.appendChild(el('pre', null, details));
+      const d = el('details', 'logbox'); d.appendChild(el('summary', null, tr('Вывод'))); d.appendChild(el('pre', null, details));
       T.patches.appendChild(d);
     }
     scrollDown();
   }
 
   function addAsk(ev) {
-    if (S.yolo) { api.sessionSend(ev.kind === 'confirm' ? 'y' : (ev.default || 'y')); addSys('Авто-подтверждение: ' + ev.text, 'ok'); return; }
+    if (S.yolo) { api.sessionSend(ev.kind === 'confirm' ? 'y' : (ev.default || 'y')); addSys(tr('Авто-подтверждение: ') + ev.text, 'ok'); return; }
     const T = S.turn && !S.turn.done ? S.turn : newTurn();
     const card = el('div', 'ask');
     card.appendChild(el('div', null, ev.text));
     const btns = el('div', 'ask-btns');
     const done = (txt) => { card.textContent = ''; { const rw = el('div', 'sys'); rw.append(ico('corner', 'sm'), el('span', null, txt)); card.appendChild(rw); } S.askCard = null; };
     if (ev.kind === 'confirm') {
-      const yes = el('button', 'btn small primary', 'Да');
-      const no = el('button', 'btn small', 'Нет');
-      yes.addEventListener('click', () => { api.sessionSend('y'); done('да'); });
-      no.addEventListener('click', () => { api.sessionSend('n'); done('нет'); });
+      const yes = el('button', 'btn small primary', tr('Да'));
+      const no = el('button', 'btn small', tr('Нет'));
+      yes.addEventListener('click', () => { api.sessionSend('y'); done(tr('да')); });
+      no.addEventListener('click', () => { api.sessionSend('n'); done(tr('нет')); });
       btns.append(yes, no);
     } else {
-      const inp = el('input'); inp.placeholder = 'y — кодить, n — отмена, или уточнения к плану';
-      const ok = el('button', 'btn small primary', 'Ответить');
+      const inp = el('input'); inp.placeholder = tr('y — кодить, n — отмена, или уточнения к плану');
+      const ok = el('button', 'btn small primary', tr('Ответить'));
       const go = () => { const v = inp.value.trim() || ev.default || 'y'; api.sessionSend(v); done(v); };
       ok.addEventListener('click', go);
       inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
@@ -444,12 +444,12 @@
       case 'patch': addPatch(ev); break;
       case 'cmd':
         if (ev.status === 'run') addNote('', '$ ' + ev.command);
-        else if (ev.status === 'ok') addNote('ok', 'Команда выполнена: ' + ev.command);
-        else if (ev.status === 'fail') addNote('err', 'Команда завершилась с ошибкой (' + ev.code + '): ' + ev.command, ev.output);
-        else addNote('', 'Команда пропущена: ' + ev.command);
+        else if (ev.status === 'ok') addNote('ok', tr('Команда выполнена: ') + ev.command);
+        else if (ev.status === 'fail') addNote('err', tr('Команда завершилась с ошибкой (') + ev.code + '): ' + ev.command, ev.output);
+        else addNote('', tr('Команда пропущена: ') + ev.command);
         break;
       case 'verify':
-        addNote(ev.ok ? 'ok' : 'err', (ev.ok ? 'Проверка пройдена' : 'Проверка не пройдена') + ' · ' + ev.command + ' (' + ev.attempt + '/' + ev.total + ')', ev.output);
+        addNote(ev.ok ? 'ok' : 'err', (ev.ok ? tr('Проверка пройдена') : tr('Проверка не пройдена')) + ' · ' + ev.command + ' (' + ev.attempt + '/' + ev.total + ')', ev.output);
         break;
       case 'ask': addAsk(ev); break;
       case 'models': onModels(ev); break;
@@ -472,7 +472,7 @@
     const T = S.turn && !S.turn.done ? S.turn : newTurn();
     if (ev.mode === 'extra') {
       T.ctxline.classList.remove('hidden');
-      T.ctxline.appendChild(el('span', 'tag acc', '+ по запросу модели: ' + (ev.extra || []).join(', ')));
+      T.ctxline.appendChild(el('span', 'tag acc', tr('+ по запросу модели: ') + (ev.extra || []).join(', ')));
       return;
     }
     S.ctxInfo = ev;
@@ -480,18 +480,18 @@
     T.ctxline.textContent = '';
     T.ctxline.classList.remove('hidden');
     const auto = ev.mode === 'auto';
-    T.ctxline.appendChild(el('span', 'tag ' + (auto ? 'acc' : ''), auto ? 'Автоподбор контекста' : 'Весь проект'));
-    T.ctxline.appendChild(el('span', 'tag', fmtNum(ev.files) + (ev.total_files ? ' из ' + fmtNum(ev.total_files) : '') + ' файлов'));
-    if (ev.tokens) T.ctxline.appendChild(el('span', 'tag', '≈ ' + fmtNum(ev.tokens) + ' токенов'));
-    if (ev.fallback) T.ctxline.appendChild(el('span', 'tag warn', 'описание неточное — ключевые файлы'));
-    $('ctxMini').textContent = '≈ ' + fmtNum(ev.tokens || 0) + ' ток. · ' + fmtNum(ev.files || 0) + ' файлов';
+    T.ctxline.appendChild(el('span', 'tag ' + (auto ? 'acc' : ''), auto ? tr('Автоподбор контекста') : tr('Весь проект')));
+    T.ctxline.appendChild(el('span', 'tag', fmtNum(ev.files) + (ev.total_files ? tr(' из ') + fmtNum(ev.total_files) : '') + tr(' файлов')));
+    if (ev.tokens) T.ctxline.appendChild(el('span', 'tag', '≈ ' + fmtNum(ev.tokens) + tr(' токенов')));
+    if (ev.fallback) T.ctxline.appendChild(el('span', 'tag warn', tr('описание неточное — ключевые файлы')));
+    $('ctxMini').textContent = '≈ ' + fmtNum(ev.tokens || 0) + tr(' ток. · ') + fmtNum(ev.files || 0) + tr(' файлов');
   }
 
   function onProgress(ev) {
     const T = S.turn;
     if (!T || T.done || !S.livePreview) return;
     T.live.classList.remove('hidden');
-    T.liveMeta.textContent = fmtNum(ev.chars) + ' симв. · ' + ev.elapsed + ' с';
+    T.liveMeta.textContent = fmtNum(ev.chars) + tr(' симв. · ') + ev.elapsed + tr(' с');
     const t = String(ev.text || '');
     T.liveText.textContent = t.length > 900 ? '…' + t.slice(-900) : t;
     scrollDown();
@@ -521,7 +521,7 @@
   function renderChanges() {
     const box = $('iChanges');
     box.textContent = '';
-    if (!S.changes.length) { box.appendChild(el('div', 'empty', 'Здесь появятся файлы, которые изменила модель. Откатить последний патч — кнопка «Откат» под полем ввода.')); return; }
+    if (!S.changes.length) { box.appendChild(el('div', 'empty', tr('Здесь появятся файлы, которые изменила модель. Откатить последний патч — кнопка «Откат» под полем ввода.'))); return; }
     const list = el('div', 'rowlist');
     for (const c of S.changes.slice(0, 80)) {
       const failed = c.action === 'FAILED';
@@ -537,8 +537,8 @@
     const box = $('iContext');
     box.textContent = '';
     const ev = S.ctxInfo;
-    if (!ev) { box.appendChild(el('div', 'empty', 'После первой задачи здесь будет видно, какие файлы ушли в чат и почему.')); return; }
-    box.appendChild(el('div', 'empty', (ev.mode === 'auto' ? 'Автоподбор: ' : 'Весь проект: ') + ev.files + ' файл(ов), ≈ ' + fmtNum(ev.tokens || 0) + ' токенов' + (ev.note ? '. ' + ev.note : '')));
+    if (!ev) { box.appendChild(el('div', 'empty', tr('После первой задачи здесь будет видно, какие файлы ушли в чат и почему.'))); return; }
+    box.appendChild(el('div', 'empty', (ev.mode === 'auto' ? tr('Автоподбор: ') : tr('Весь проект: ')) + ev.files + tr(' файл(ов), ≈ ') + fmtNum(ev.tokens || 0) + tr(' токенов') + (ev.note ? '. ' + ev.note : '')));
     for (const f of ev.selected || []) {
       const r = el('div', 'sel-row');
       r.append(el('span', 'nm', f.path), el('span', 'why', f.reason || ''));
@@ -553,33 +553,33 @@
     let mode = S.starting ? 'starting' : S.mode;
     pill.classList.remove('on', 'off', 'busy');
     pill.classList.add(mode === 'off' ? 'off' : mode === 'idle' ? 'on' : 'busy');
-    const txt = { off: 'сессия не запущена', starting: 'запуск…', booting: 'загрузка CLI…', idle: 'готов к задаче', busy: PHASE_TEXT[S.phase] && S.phase !== 'idle' ? PHASE_TEXT[S.phase].replace('…', '') : 'работает' };
+    const txt = { off: tr('сессия не запущена'), starting: tr('запуск…'), booting: tr('загрузка CLI…'), idle: tr('готов к задаче'), busy: PHASE_TEXT[S.phase] && S.phase !== 'idle' ? PHASE_TEXT[S.phase].replace('…', '') : tr('работает') };
     $('sessionText').textContent = txt[mode];
     $('endSession').classList.toggle('hidden', !S.running);
     const send = $('send');
     const busy = S.mode === 'busy' && !S.askCard;
     send.classList.toggle('stop', busy);
-    send.title = busy ? 'Остановить ответ (Esc)' : 'Отправить';
+    send.title = busy ? tr('Остановить ответ (Esc)') : tr('Отправить');
     send.textContent = '';
     send.appendChild(icon(busy ? 'stop' : 'send'));
     send.firstChild.setAttribute('class', 'ico');
     send.firstChild.style.width = '18px';
     send.firstChild.style.height = '18px';
     send.disabled = S.starting;
-    $('prompt').placeholder = S.askCard ? 'Ответ для CLI (y / n / текст)…' : 'Опиши задачу…  (/ — команды)';
+    $('prompt').placeholder = S.askCard ? tr('Ответ для CLI (y / n / текст)…') : tr('Опиши задачу…  (/ — команды)');
   }
 
   async function startSession() {
-    if (!S.project) { toast('Сначала выберите папку проекта', true); return false; }
+    if (!S.project) { toast(tr('Сначала выберите папку проекта'), true); return false; }
     if (S.starting) return false;
     S.starting = true; renderSession();
-    addSys('Запуск Vibe CLI…');
+    addSys(tr('Запуск Vibe CLI…'));
     const r = await api.sessionStart({
       project: S.project, provider: S.provider, model: curModel().trim(), reasoning: S.reasonings[S.provider] || '', yolo: S.yolo, transport: S.transport,
       autoChrome: S.autoChrome, timeoutMin: S.timeoutMin, autoContext: S.autoContext, promptStyle: S.promptStyle
     });
     S.starting = false;
-    if (!r || !r.ok) { addSys((r && r.error) || 'Не удалось запустить сессию', 'err'); renderSession(); return false; }
+    if (!r || !r.ok) { addSys((r && r.error) || tr('Не удалось запустить сессию'), 'err'); renderSession(); return false; }
     S.running = true; S.mode = 'booting';
     if (S.autoContext) { api.sessionSend('/autocontext_set ' + S.maxFiles + ' ' + S.budget); }
     renderSession();
@@ -588,7 +588,7 @@
 
   function enqueue(text, o) {
     S.outbox.push(Object.assign({ text }, o || {}));
-    if (S.mode === 'busy' || S.mode === 'booting') { if (!(o && o.silent)) addSys('Сообщение в очереди — дождёмся завершения текущего шага'); }
+    if (S.mode === 'busy' || S.mode === 'booting') { if (!(o && o.silent)) addSys(tr('Сообщение в очереди — дождёмся завершения текущего шага')); }
     pump();
   }
   function pump() {
@@ -616,7 +616,7 @@
     c.appendChild(ico(/\.zip$/i.test(f.name) ? 'archive' : 'image', 'sm'));
     c.appendChild(el('span', 'att-n', f.name));
     if (f.size) c.appendChild(el('span', 'att-s', fmtBytes(f.size)));
-    if (onRemove) { const x = el('button', 'att-x'); x.title = 'Убрать'; x.appendChild(ico('x', 'sm')); x.addEventListener('click', onRemove); c.appendChild(x); }
+    if (onRemove) { const x = el('button', 'att-x'); x.title = tr('Убрать'); x.appendChild(ico('x', 'sm')); x.addEventListener('click', onRemove); c.appendChild(x); }
     return c;
   }
   function renderAttach() {
@@ -629,8 +629,8 @@
   function addAttachments(list) {
     for (const f of list) {
       if (!f || !f.path) continue;
-      if (!ATT_OK.test(f.name)) { toast('Нельзя прикрепить «' + f.name + '»: только zip и изображения', true); continue; }
-      if (f.size > 25 * 1048576) { toast('«' + f.name + '» больше 25 МБ', true); continue; }
+      if (!ATT_OK.test(f.name)) { toast(tr('Нельзя прикрепить «') + f.name + tr('»: только zip и изображения'), true); continue; }
+      if (f.size > 25 * 1048576) { toast('«' + f.name + tr('» больше 25 МБ'), true); continue; }
       if (!S.attach.some((a) => a.path === f.path)) S.attach.push({ path: f.path, name: f.name, size: f.size || 0 });
     }
     renderAttach();
@@ -672,15 +672,16 @@
   function stopGeneration() {
     if (S.mode !== 'busy') return;
     api.generationStop();
-    if (S.turn && !S.turn.done) { S.turn.label.textContent = 'Останавливаю…'; S.turn.stopBtn.disabled = true; }
+    if (S.turn && !S.turn.done) { S.turn.label.textContent = tr('Останавливаю…'); S.turn.stopBtn.disabled = true; }
   }
 
   function onExit(p) {
     finishTurn({ failed: !!(p && p.code) });
     S.running = false; S.starting = false; S.mode = 'off'; S.outbox = []; S.askCard = null; S.phase = 'idle';
     renderSession(); updateStatusBar();
-    addSys('Сессия завершена' + (p && p.code != null ? ' (код ' + p.code + ')' : '') + (p && p.error ? ': ' + p.error : ''), p && p.code ? 'err' : '');
-    if (p && p.code) addSys('Если CLI закрылся при старте — проверьте зависимости: pip install -r requirements.txt', 'warn');
+    addSys(tr('Сессия завершена') + (p && p.code != null ? tr(' (код ') + p.code + ')' : '') + (p && p.error ? ': ' + p.error : ''), p && p.code ? 'err' : '');
+    if (S.reloadOnExit) { location.reload(); return; }
+    if (p && p.code) addSys(tr('Если CLI закрылся при старте — проверьте зависимости: pip install -r requirements.txt'), 'warn');
   }
 
   /* ================= статус Chrome ================= */
@@ -695,15 +696,15 @@
   }
   /* ================= списки моделей: кэш в JSON + автообновление ================= */
 
-  const agoText = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'только что' : m < 60 ? m + ' мин назад' : Math.round(m / 60) + ' ч назад'; };
+  const agoText = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? tr('только что') : m < 60 ? m + tr(' мин назад') : Math.round(m / 60) + tr(' ч назад'); };
 
   async function refreshModels(provider, quiet) {
-    if (!S.project) { if (!quiet) toast('Сначала выберите папку проекта', true); return false; }
-    if (!(S.cdp[provider] || {}).online) { if (!quiet) toast('Chrome для ' + PROVIDERS[provider].title + ' не запущен', true); return false; }
+    if (!S.project) { if (!quiet) toast(tr('Сначала выберите папку проекта'), true); return false; }
+    if (!(S.cdp[provider] || {}).online) { if (!quiet) toast(tr('Chrome для ') + PROVIDERS[provider].title + tr(' не запущен'), true); return false; }
     S.lastTry[provider] = Date.now();
     const r = await api.listModels({ project: S.project, provider });
     if (r && r.ok && r.models && r.models.entries && r.models.entries.length) { onModels(r.models); return true; }
-    if (!quiet) toast((r && (r.error || (r.models && r.models.error))) || 'Не удалось прочитать список моделей', true);
+    if (!quiet) toast((r && (r.error || (r.models && r.models.error))) || tr('Не удалось прочитать список моделей'), true);
     return false;
   }
   async function refreshAllModels(force, quiet) {
@@ -741,37 +742,37 @@
     try { renderStatus(await api.status(S.project)); } catch (_) { /* ignore */ }
   }
   async function launchChrome(provider) {
-    if (!S.vibeRoot) { toast('Не найден Vibe CLI — укажите папку в Настройки → Подключение', true); return; }
-    toast('Запускаю Chrome…');
+    if (!S.vibeRoot) { toast(tr('Не найден Vibe CLI — укажите папку в Настройки → Подключение'), true); return; }
+    toast(tr('Запускаю Chrome…'));
     const r = await api.launchChrome(provider, S.project);
-    if (r && r.ok) toast(r.already ? 'Chrome уже запущен' : 'Chrome запущен — войдите в аккаунт, если нужно');
-    else toast((r && r.error) || 'Не удалось запустить Chrome', true);
+    if (r && r.ok) toast(r.already ? tr('Chrome уже запущен') : tr('Chrome запущен — войдите в аккаунт, если нужно'));
+    else toast((r && r.error) || tr('Не удалось запустить Chrome'), true);
     pollStatus();
   }
 
   function updateStatusBar() {
     const online = S.cdp[S.provider] && S.cdp[S.provider].online;
-    $('chipText').textContent = provTitle() + ' · ' + (curModel() || 'авто');
+    $('chipText').textContent = provTitle() + ' · ' + (curModel() || tr('авто'));
     $('chipDot').className = 'dot ' + (online ? 'on' : 'off');
     $('cModelText').textContent = curModel() || provTitle();
     $('cAuto').classList.toggle('on', S.autoContext);
     $('cPlan').classList.toggle('on', S.plan);
     $('sbChrome').firstChild.className = 'dot ' + (online ? 'on' : 'off');
-    $('sbChrome').lastChild.textContent = 'Chrome ' + (online ? 'подключён' : 'не запущен');
-    $('sbModel').textContent = provTitle() + ' · ' + (curModel() || 'модель по умолчанию');
-    $('sbAuto').textContent = 'Автоконтекст: ' + (S.autoContext ? 'вкл' : 'выкл');
-    if (S.mode !== 'busy') $('sbPhase').textContent = S.running ? 'готов' : 'сессия не запущена';
+    $('sbChrome').lastChild.textContent = 'Chrome ' + (online ? tr('подключён') : tr('не запущен'));
+    $('sbModel').textContent = provTitle() + ' · ' + (curModel() || tr('модель по умолчанию'));
+    $('sbAuto').textContent = tr('Автоконтекст: ') + (S.autoContext ? tr('вкл') : tr('выкл'));
+    if (S.mode !== 'busy') $('sbPhase').textContent = S.running ? tr('готов') : tr('сессия не запущена');
     $('sbPath').textContent = S.project || '';
     $('modelChip').classList.toggle('on', S.modelPop.open);
   }
 
   /* ================= модели ================= */
 
-  const DEFAULT_LEVELS = [['', 'авто'], ['low', 'low'], ['medium', 'mid'], ['high', 'high'], ['off', 'off']];
+  const DEFAULT_LEVELS = [['', tr('авто')], ['low', 'low'], ['medium', 'mid'], ['high', 'high'], ['off', 'off']];
   // уровни рассуждений: если список прочитан с сайта — показываем именно его, а не запомненный
   function levelOptions(provider) {
     const lv = (S.liveModels[provider] || {}).levels;
-    return lv && lv.length ? [['', 'авто']].concat(lv.map((l) => [l, l])) : DEFAULT_LEVELS;
+    return lv && lv.length ? [['', tr('авто')]].concat(lv.map((l) => [l, l])) : DEFAULT_LEVELS;
   }
 
   // Только то, что прочитано с сайта. Запомненного списка нет — до первой загрузки список пуст.
@@ -812,7 +813,7 @@
       tabs.appendChild(b);
     }
     const search = el('div', 'pop-search');
-    const inp = el('input'); inp.placeholder = P.provider === 'aistudio' ? 'Поиск модели (список — с сайта)…' : 'Поиск модели…'; inp.value = P.q;
+    const inp = el('input'); inp.placeholder = P.provider === 'aistudio' ? tr('Поиск модели (список — с сайта)…') : tr('Поиск модели…'); inp.value = P.q;
     inp.addEventListener('input', () => { P.q = inp.value; renderList(); });
     inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const f = list.querySelector('.mrow:nth-child(2)'); if (f) f.click(); } if (e.key === 'Escape') closeModelPop(); });
     search.appendChild(inp);
@@ -822,13 +823,13 @@
       const q = P.q.trim().toLowerCase();
       const items = modelEntries(P.provider).filter((m) => !q || (m.name + ' ' + m.id + ' ' + m.desc).toLowerCase().includes(q));
       const sel = S.models[P.provider];
-      list.appendChild(rowFor({ id: '', name: 'По умолчанию', desc: 'Модель, выбранная на сайте' }, !sel && P.provider === S.provider));
+      list.appendChild(rowFor({ id: '', name: tr('По умолчанию'), desc: tr('Модель, выбранная на сайте') }, !sel && P.provider === S.provider));
       for (const m of items) list.appendChild(rowFor(m, sel === m.id && P.provider === S.provider));
       if (!items.length) {
         const e = el('div', 'pop-empty');
         const on = (S.cdp[P.provider] || {}).online;
-        e.appendChild(el('b', null, q ? 'Ничего не найдено' : 'Список моделей ещё не загружен'));
-        e.appendChild(el('span', null, q ? 'Проверьте запрос' : (on ? 'Читаю список с сайта… можно нажать «Обновить с сайта»' : 'Запустите Chrome для ' + PROVIDERS[P.provider].title + ' (Настройки → Подключение) — список загрузится сам')));
+        e.appendChild(el('b', null, q ? tr('Ничего не найдено') : tr('Список моделей ещё не загружен')));
+        e.appendChild(el('span', null, q ? tr('Проверьте запрос') : (on ? tr('Читаю список с сайта… можно нажать «Обновить с сайта»') : tr('Запустите Chrome для ') + PROVIDERS[P.provider].title + tr(' (Настройки → Подключение) — список загрузится сам'))));
         list.appendChild(e);
       }
     }
@@ -846,20 +847,20 @@
     renderList();
     const foot = el('div', 'pop-foot');
     const refresh = el('button', 'btn small');
-    refresh.append(ico('refresh', 'sm'), document.createTextNode(' Обновить с сайта'));
+    refresh.append(ico('refresh', 'sm'), document.createTextNode(tr(' Обновить с сайта')));
     refresh.addEventListener('click', async () => {
       refresh.disabled = true;
-      toast('Читаю список моделей со страницы…');
+      toast(tr('Читаю список моделей со страницы…'));
       const ok = await refreshModels(P.provider, false);
-      if (ok) toast('Список моделей обновлён');
+      if (ok) toast(tr('Список моделей обновлён'));
       refresh.disabled = false;
       if (S.modelPop.open) renderModelPop();
     });
     foot.appendChild(refresh);
     const at = (S.liveModels[P.provider] || {}).at;
-    if (at) foot.appendChild(el('span', 'hint', 'обновлено ' + agoText(at)));
+    if (at) foot.appendChild(el('span', 'hint', tr('обновлено ') + agoText(at)));
     {
-      foot.appendChild(el('span', 'hint', 'Рассуждения:'));
+      foot.appendChild(el('span', 'hint', tr('Рассуждения:')));
       const seg = el('div', 'seg');
       for (const [v, n] of levelOptions(P.provider)) {
         const b = el('button', (S.reasonings[P.provider] || '') === v ? 'active' : '', n);
@@ -884,7 +885,7 @@
     updateStatusBar(); buildConnect(); syncControls();
     if (providerChanged && S.running) {
       api.sessionStop();
-      toast('Сессия перезапустится с провайдером ' + provTitle());
+      toast(tr('Сессия перезапустится с провайдером ') + provTitle());
     } else if (S.running && id) silent('/model ' + id + ((S.reasonings[provider] || '') ? ' ' + S.reasonings[provider] : ''));
     pollStatus(); schedulePreview();
   }
@@ -894,7 +895,7 @@
   function renderRecents() { /* список последних проектов — в меню проекта (по клику на пилюлю) */ }
 
   async function openProject(root) {
-    if (S.running) { await api.sessionStop(); toast('Сессия остановлена — сменился проект'); }
+    if (S.running) { await api.sessionStop(); toast(tr('Сессия остановлена — сменился проект')); }
     S.project = root;
     S.recents = [root, ...S.recents.filter((x) => x !== root)].slice(0, 8);
     S.cache = new Map(); S.expanded = new Set(); S.changes = [];
@@ -925,7 +926,7 @@
   function renderTree() {
     const tree = $('tree'), scroll = tree.scrollTop;
     tree.textContent = '';
-    if (!S.project) { tree.appendChild(el('div', 'hint', 'Выберите папку проекта')); return; }
+    if (!S.project) { tree.appendChild(el('div', 'hint', tr('Выберите папку проекта'))); return; }
     const frag = document.createDocumentFragment();
     addLevel('', 0, false, frag);
     tree.appendChild(frag);
@@ -934,7 +935,7 @@
   function addLevel(rel, depth, parentOff, frag) {
     const entries = S.cache.get(rel);
     if (!entries) return;
-    if (!entries.length && depth === 0) { frag.appendChild(el('div', 'hint', 'Папка пуста')); return; }
+    if (!entries.length && depth === 0) { frag.appendChild(el('div', 'hint', tr('Папка пуста'))); return; }
     for (const e of entries) {
       const r = rel ? rel + '/' + e.name : e.name;
       const off = parentOff || !!e.state;
@@ -942,20 +943,20 @@
       if (e.isDir && S.expanded.has(r)) addLevel(r, depth + 1, off, frag);
     }
   }
-  const TAGS = { builtin: 'АВТО', git: 'GIT', user: 'ИСКЛ.' };
+  const TAGS = { builtin: tr('АВТО'), git: 'GIT', user: tr('ИСКЛ.') };
   function buildRow(e, r, depth, off, parentOff) {
     const row = el('div', 'row' + (e.isDir ? ' dir' : '') + (off ? ' off' : ''));
     row.style.paddingLeft = (10 + depth * 18) + 'px';
     const caret = el('span', 'caret' + (e.isDir ? '' : ' none'), e.isDir ? (S.expanded.has(r) ? '▾' : '▸') : '▸');
     if (e.isDir) caret.addEventListener('click', () => toggleExpand(r));
     const cb = el('span', 'cb'); cb.appendChild(ico('check', 'sm'));
-    cb.title = off ? 'Включить в контекст' : 'Исключить из контекста';
+    cb.title = off ? tr('Включить в контекст') : tr('Исключить из контекста');
     cb.addEventListener('click', () => toggleExclude(e, r, parentOff));
     const name = el('span', 'name', e.name);
     name.title = r;
     name.addEventListener('click', () => (e.isDir ? toggleExpand(r) : toggleExclude(e, r, parentOff)));
     row.append(caret, cb, el('span', 'ico2', e.isDir ? (S.expanded.has(r) ? '📂' : '📁') : '📄'), name);
-    if (e.state) row.appendChild(el('span', 'rtag', TAGS[e.state] || 'ИСКЛ.'));
+    if (e.state) row.appendChild(el('span', 'rtag', TAGS[e.state] || tr('ИСКЛ.')));
     if (!e.isDir) row.appendChild(el('span', 'size', fmtBytes(e.size)));
     return row;
   }
@@ -964,13 +965,13 @@
     renderTree();
   }
   async function toggleExclude(e, r, parentOff) {
-    if (parentOff && !e.state) { toast('Родительская папка исключена — сначала включите её', true); return; }
-    if (e.state === 'builtin') { toast('Встроенное правило Vibe CLI — его нельзя снять здесь', true); return; }
-    if (e.state === 'git') { toast('Исключено через .gitignore проекта', true); return; }
+    if (parentOff && !e.state) { toast(tr('Родительская папка исключена — сначала включите её'), true); return; }
+    if (e.state === 'builtin') { toast(tr('Встроенное правило Vibe CLI — его нельзя снять здесь'), true); return; }
+    if (e.state === 'git') { toast(tr('Исключено через .gitignore проекта'), true); return; }
     const key = '/' + r + (e.isDir ? '/' : '');
     if (e.state === 'user') {
       const hit = [key, e.name + (e.isDir ? '/' : ''), e.name, '/' + r].find((a) => S.managed.has(a));
-      if (!hit) { toast('Правило задано вручную в .vibeignore или .vibe.json', true); return; }
+      if (!hit) { toast(tr('Правило задано вручную в .vibeignore или .vibe.json'), true); return; }
       S.managed.delete(hit);
     } else S.managed.add(key);
     await saveManaged();
@@ -983,7 +984,7 @@
   }
   async function saveManaged() {
     const r = await api.ignoreSet(S.project, [...S.managed]);
-    if (!r || !r.ok) toast('Не удалось записать .vibeignore: ' + ((r && r.error) || ''), true);
+    if (!r || !r.ok) toast(tr('Не удалось записать .vibeignore: ') + ((r && r.error) || ''), true);
     renderChips(); await refreshTree(); schedulePreview();
   }
   const SUGGEST = ['*.log', '*.csv', '*.md', 'docs/', 'tests/', '.vibeide/'];
@@ -993,11 +994,11 @@
     for (const p of [...S.managed].sort()) {
       const chip = el('span', 'chipx');
       chip.appendChild(el('span', null, p));
-      const x = el('button', null, '×'); x.type = 'button'; x.title = 'Убрать правило';
+      const x = el('button', null, '×'); x.type = 'button'; x.title = tr('Убрать правило');
       x.addEventListener('click', () => { S.managed.delete(p); saveManaged(); });
       chip.appendChild(x); box.appendChild(chip);
     }
-    if (!S.managed.size) box.appendChild(el('span', 'hint', 'Своих правил пока нет'));
+    if (!S.managed.size) box.appendChild(el('span', 'hint', tr('Своих правил пока нет')));
     const sug = $('suggest');
     sug.textContent = '';
     for (const s of SUGGEST.filter((x) => !S.managed.has(x))) {
@@ -1025,16 +1026,16 @@
     fill.style.width = Math.min(100, ratio * 100).toFixed(1) + '%';
     fill.classList.toggle('warn', ratio >= 0.6 && ratio < 1);
     fill.classList.toggle('bad', ratio >= 1);
-    $('meterNote').textContent = '≈ ' + Math.round(ratio * 100) + '% окна ' + (S.provider === 'claude' ? 'Claude' : 'Gemini') + ' (' + fmtNum(limit / 1000) + 'k токенов)';
+    $('meterNote').textContent = '≈ ' + Math.round(ratio * 100) + tr('% окна ') + (S.provider === 'claude' ? 'Claude' : 'Gemini') + ' (' + fmtNum(limit / 1000) + tr('k токенов)');
     const s = info.skipped || {}, parts = [];
-    if (s.binary) parts.push('бинарных: ' + s.binary);
-    if (s.large) parts.push('больших: ' + s.large);
-    if (s.unreadable) parts.push('нечитаемых: ' + s.unreadable);
-    $('stSkipped').textContent = parts.length ? 'Пропущено — ' + parts.join(' · ') : '';
+    if (s.binary) parts.push(tr('бинарных: ') + s.binary);
+    if (s.large) parts.push(tr('больших: ') + s.large);
+    if (s.unreadable) parts.push(tr('нечитаемых: ') + s.unreadable);
+    $('stSkipped').textContent = parts.length ? tr('Пропущено — ') + parts.join(' · ') : '';
     $('autoNote').textContent = S.autoContext
-      ? 'Автоподбор включён: в чат уходят не все файлы, а до ' + S.maxFiles + ' файлов (≈ ' + fmtNum(S.budget) + ' токенов), нужных для задачи.'
+      ? tr('Автоподбор включён: в чат уходят не все файлы, а до ') + S.maxFiles + tr(' файлов (≈ ') + fmtNum(S.budget) + tr(' токенов), нужных для задачи.')
       : '';
-    if (!S.ctxInfo) $('ctxMini').textContent = '≈ ' + fmtNum(info.tokens) + ' ток. · ' + fmtNum(info.files) + ' файлов';
+    if (!S.ctxInfo) $('ctxMini').textContent = '≈ ' + fmtNum(info.tokens) + tr(' ток. · ') + fmtNum(info.files) + tr(' файлов');
     const top = $('top');
     top.textContent = '';
     const max = info.top.length ? info.top[0].size : 1;
@@ -1094,7 +1095,7 @@
   function buildLook() {
     const box = $('sLook');
     box.textContent = '';
-    const g1 = group('Тема', 'Светлые и тёмные темы. «Системная» следует настройкам операционной системы.');
+    const g1 = group(tr('Тема'), tr('Светлые и тёмные темы. «Системная» следует настройкам операционной системы.'));
     const grid = el('div', 'theme-grid');
     for (const t of THEMES) {
       const b = el('button', 'tcard' + (S.theme === t.id ? ' active' : ''));
@@ -1109,81 +1110,95 @@
       grid.appendChild(b);
     }
     g1.appendChild(grid);
-    const g2 = group('Акцентный цвет', 'Цвет кнопок, выделений и логотипа. «Авто» — цвет выбранной темы.');
+    const g2 = group(tr('Акцентный цвет'), tr('Цвет кнопок, выделений и логотипа. «Авто» — цвет выбранной темы.'));
     const sw = el('div', 'swatches');
     for (const c of ACCENTS) {
       const b = el('button', 'sw' + (S.accent === c ? ' active' : '') + (c ? '' : ' auto'));
       if (c) b.style.background = c;
-      b.title = c || 'Авто';
+      b.title = c || tr('Авто');
       b.addEventListener('click', () => { S.accent = c; saveSettings(); applyTheme(); buildLook(); });
       sw.appendChild(b);
     }
     g2.appendChild(sw);
-    const g3 = group('Интерфейс');
-    g3.appendChild(srow('Плотность', 'Расстояния между элементами', selectCtl('density', [['compact', 'Компактная'], ['standard', 'Обычная'], ['cozy', 'Просторная']], applyTheme)));
-    g3.appendChild(srow('Размер шрифта', 'Основной текст интерфейса', rangeCtl('fontSize', 12, 18, 1, (v) => v + ' px', () => applyTheme())));
-    g3.appendChild(srow('Скругление углов', 'Карточки, кнопки и поля', rangeCtl('radius', 4, 20, 1, (v) => v + ' px', () => applyTheme())));
-    g3.appendChild(srow('Ширина чата', 'Максимальная ширина колонки с сообщениями', rangeCtl('chatWidth', 640, 1200, 20, (v) => v + ' px', () => applyTheme())));
-    const g4 = group('Эффекты');
-    g4.appendChild(srow('Фон с частицами', 'Лёгкая анимация на заднем плане', toggleCtl('fx', applyTheme)));
-    g4.appendChild(srow('Анимации интерфейса', 'Плавные переходы, пульсация статуса', toggleCtl('motion', applyTheme)));
-    box.append(g1, g2, g3, g4);
+    const g3 = group(tr('Интерфейс'));
+    g3.appendChild(srow(tr('Плотность'), tr('Расстояния между элементами'), selectCtl('density', [['compact', tr('Компактная')], ['standard', tr('Обычная')], ['cozy', tr('Просторная')]], applyTheme)));
+    g3.appendChild(srow(tr('Размер шрифта'), tr('Основной текст интерфейса'), rangeCtl('fontSize', 12, 18, 1, (v) => v + ' px', () => applyTheme())));
+    g3.appendChild(srow(tr('Скругление углов'), tr('Карточки, кнопки и поля'), rangeCtl('radius', 4, 20, 1, (v) => v + ' px', () => applyTheme())));
+    g3.appendChild(srow(tr('Ширина чата'), tr('Максимальная ширина колонки с сообщениями'), rangeCtl('chatWidth', 640, 1200, 20, (v) => v + ' px', () => applyTheme())));
+    const g4 = group(tr('Эффекты'));
+    g4.appendChild(srow(tr('Фон с частицами'), tr('Лёгкая анимация на заднем плане'), toggleCtl('fx', applyTheme)));
+    g4.appendChild(srow(tr('Анимации интерфейса'), tr('Плавные переходы, пульсация статуса'), toggleCtl('motion', applyTheme)));
+    const g0 = group(tr('Язык'), tr('Язык интерфейса IDE и сообщений Vibe CLI. Применяется сразу.'));
+    const ls = el('select');
+    for (const [v, n] of [['en', 'English'], ['ru', tr('Русский')]]) { const o = el('option', null, n); o.value = v; ls.appendChild(o); }
+    ls.value = window.VIBE_LANG;
+    ls.addEventListener('change', () => applyLanguage(ls.value));
+    g0.appendChild(srow(tr('Язык'), '', ls));
+    box.append(g0, g1, g2, g3, g4);
+  }
+
+  // Смена языка: CLI переключается сразу командой /lang, окно перезагружается (если идёт сессия — после её завершения).
+  function applyLanguage(v) {
+    window.setLang(v);
+    api.setLang(v);
+    silent('/lang ' + v);
+    if (S.running) { S.reloadOnExit = true; toast(tr('Язык сменится после завершения сессии')); } else location.reload();
   }
 
   function buildFeatures() {
     const box = $('sFeatures');
     box.textContent = '';
-    const g1 = group('Контекст', 'Что именно уходит в чат вместе с задачей.');
-    g1.appendChild(srow('Автоматический подбор контекста по описанию', 'В чат отправляются не все файлы проекта, а только те, что нужны для правки: по словам из задачи, именам файлов и импортам. Если модели не хватит файла, она сама его запросит.',
+    const g1 = group(tr('Контекст'), tr('Что именно уходит в чат вместе с задачей.'));
+    g1.appendChild(srow(tr('Автоматический подбор контекста по описанию'), tr('В чат отправляются не все файлы проекта, а только те, что нужны для правки: по словам из задачи, именам файлов и импортам. Если модели не хватит файла, она сама его запросит.'),
       toggleCtl('autoContext', (v) => { silent('/autocontext ' + (v ? 'on' : 'off')); buildFeatures(); updateStatusBar(); schedulePreview(); })));
     const dis = S.autoContext ? '' : 'disabled';
-    g1.appendChild(srow('Максимум файлов', 'Верхняя граница числа файлов в контексте', numberCtl('maxFiles', 3, 120, 1, () => silent('/autocontext_set ' + S.maxFiles + ' ' + S.budget)), 'sub ' + dis));
-    g1.appendChild(srow('Бюджет контекста, токенов', 'Подбор остановится, когда лимит будет исчерпан', numberCtl('budget', 5000, 400000, 5000, () => silent('/autocontext_set ' + S.maxFiles + ' ' + S.budget)), 'sub ' + dis));
-    const g2 = group('Работа модели');
-    g2.appendChild(srow('Показывать ход работы модели', 'Статусы «думает», «отвечает», шаги и таймер в карточке ответа', toggleCtl('showThink', () => setPhase(S.phase))));
-    g2.appendChild(srow('Живой предпросмотр ответа', 'Показывать текст по мере генерации, до применения патчей', toggleCtl('livePreview')));
-    g2.appendChild(srow('Сначала план', 'Перед кодом модель составляет план, и вы его утверждаете', toggleCtl('plan', updateStatusBar)));
-    g2.appendChild(srow('Без подтверждений', 'Планы утверждаются, а команды выполняются автоматически. Применяется сразу, без перезапуска', toggleCtl('yolo', (v) => { silent('/yolo ' + (v ? 'on' : 'off')); })));
-    g2.appendChild(srow('Уведомлять о завершении', 'Системное уведомление, когда окно свёрнуто', toggleCtl('notify')));
-    g2.appendChild(srow('Ждать ответ ИИ, минут', 'До 180. Действует с новой сессии', numberCtl('timeoutMin', 1, 180, 5, () => { if (S.running) toast('Применится после перезапуска сессии'); })));
-    const g3 = group('Промпты и отправка', 'Текст сообщения для чата каждый раз другой и зависит от типа задачи (баг, фича, рефакторинг…). Формат патчей всегда один.');
-    g3.appendChild(srow('Тексты промптов', '«Авто» — новые формулировки на каждый запрос; «Классика» — фиксированный текст', selectCtl('promptStyle', STYLES, (v) => silent('/promptstyle ' + v))));
-    g3.appendChild(srow('Формат отправки контекста', (TRANSPORT_DESC[S.transport] || '') + '. Действует с нового чата', selectCtl('transport', TRANSPORTS, (v) => { silent('/transport ' + v); buildFeatures(); })));
-    const g4 = group('Подключение');
-    g4.appendChild(srow('Автозапуск Chrome при старте сессии', 'Если Chrome с отладкой не запущен — стартует батник', toggleCtl('autoChrome')));
-    g4.appendChild(srow('Автозапуск батников при старте IDE', 'Сразу после открытия IDE запускается scripts/start_chrome_*.bat', selectCtl('autoBat', [['off', 'Выключен'], ['sel', 'Chrome выбранного провайдера'], ['all', 'Chrome Gemini и Claude']])));
+    g1.appendChild(srow(tr('Максимум файлов'), tr('Верхняя граница числа файлов в контексте'), numberCtl('maxFiles', 3, 120, 1, () => silent('/autocontext_set ' + S.maxFiles + ' ' + S.budget)), 'sub ' + dis));
+    g1.appendChild(srow(tr('Бюджет контекста, токенов'), tr('Подбор остановится, когда лимит будет исчерпан'), numberCtl('budget', 5000, 400000, 5000, () => silent('/autocontext_set ' + S.maxFiles + ' ' + S.budget)), 'sub ' + dis));
+    const g2 = group(tr('Работа модели'));
+    g2.appendChild(srow(tr('Показывать ход работы модели'), tr('Статусы «думает», «отвечает», шаги и таймер в карточке ответа'), toggleCtl('showThink', () => setPhase(S.phase))));
+    g2.appendChild(srow(tr('Живой предпросмотр ответа'), tr('Показывать текст по мере генерации, до применения патчей'), toggleCtl('livePreview')));
+    g2.appendChild(srow(tr('Сначала план'), tr('Перед кодом модель составляет план, и вы его утверждаете'), toggleCtl('plan', updateStatusBar)));
+    g2.appendChild(srow(tr('Без подтверждений'), tr('Планы утверждаются, а команды выполняются автоматически. Применяется сразу, без перезапуска'), toggleCtl('yolo', (v) => { silent('/yolo ' + (v ? 'on' : 'off')); })));
+    g2.appendChild(srow(tr('Уведомлять о завершении'), tr('Системное уведомление, когда окно свёрнуто'), toggleCtl('notify')));
+    g2.appendChild(srow(tr('Ждать ответ ИИ, минут'), tr('До 180. Действует с новой сессии'), numberCtl('timeoutMin', 1, 180, 5, () => { if (S.running) toast(tr('Применится после перезапуска сессии')); })));
+    const g3 = group(tr('Промпты и отправка'), tr('Текст сообщения для чата каждый раз другой и зависит от типа задачи (баг, фича, рефакторинг…). Формат патчей всегда один.'));
+    g3.appendChild(srow(tr('Тексты промптов'), tr('«Авто» — новые формулировки на каждый запрос; «Классика» — фиксированный текст'), selectCtl('promptStyle', STYLES, (v) => silent('/promptstyle ' + v))));
+    g3.appendChild(srow(tr('Формат отправки контекста'), (TRANSPORT_DESC[S.transport] || '') + tr('. Действует с нового чата'), selectCtl('transport', TRANSPORTS, (v) => { silent('/transport ' + v); buildFeatures(); })));
+    const g4 = group(tr('Подключение'));
+    g4.appendChild(srow(tr('Автозапуск Chrome при старте сессии'), tr('Если Chrome с отладкой не запущен — стартует батник'), toggleCtl('autoChrome')));
+    g4.appendChild(srow(tr('Автозапуск батников при старте IDE'), tr('Сразу после открытия IDE запускается scripts/start_chrome_*.bat'), selectCtl('autoBat', [['off', tr('Выключен')], ['sel', tr('Chrome выбранного провайдера')], ['all', tr('Chrome Gemini и Claude')]])));
     const ta = el('textarea'); ta.rows = 3; ta.placeholder = 'scripts/my.bat\nC:\\tools\\run.bat'; ta.value = S.startScripts || ''; ta.className = 'input';
     ta.addEventListener('change', () => { S.startScripts = ta.value; saveSettings(); });
-    g4.appendChild(srow('Свои скрипты при старте IDE', 'По одному пути в строке (.bat). Относительные пути — от папки Vibe', ta, 'col'));
-    const g5 = group('Списки моделей', 'Названия моделей и уровней рассуждений всегда читаются с сайта и сохраняются в models-cache.json — перезагружать их вручную не нужно.');
-    g5.appendChild(srow('Автообновление, минут', '0 — не обновлять автоматически. Для этого Chrome должен быть запущен', numberCtl('modelsRefreshMin', 0, 1440, 5)));
-    const rb = el('button', 'btn small', 'Обновить сейчас');
-    rb.addEventListener('click', async () => { rb.disabled = true; toast('Читаю списки моделей со страниц…'); await refreshAllModels(true, false); rb.disabled = false; toast('Готово'); });
-    g5.appendChild(srow('Обновить списки сейчас', 'Gemini, Claude и AI Studio по очереди', rb));
+    g4.appendChild(srow(tr('Свои скрипты при старте IDE'), tr('По одному пути в строке (.bat). Относительные пути — от папки Vibe'), ta, 'col'));
+    const g5 = group(tr('Списки моделей'), tr('Названия моделей и уровней рассуждений всегда читаются с сайта и сохраняются в models-cache.json — перезагружать их вручную не нужно.'));
+    g5.appendChild(srow(tr('Автообновление, минут'), tr('0 — не обновлять автоматически. Для этого Chrome должен быть запущен'), numberCtl('modelsRefreshMin', 0, 1440, 5)));
+    const rb = el('button', 'btn small', tr('Обновить сейчас'));
+    rb.addEventListener('click', async () => { rb.disabled = true; toast(tr('Читаю списки моделей со страниц…')); await refreshAllModels(true, false); rb.disabled = false; toast(tr('Готово')); });
+    g5.appendChild(srow(tr('Обновить списки сейчас'), tr('Gemini, Claude и AI Studio по очереди'), rb));
     box.append(g1, g2, g3, g4, g5);
   }
 
   function buildConnect() {
     const box = $('sConnect');
     box.textContent = '';
-    const g = group('Браузеры ИИ', 'Vibe управляет вашим Chrome: вход в аккаунт нужен один раз. Gemini и AI Studio используют один Google-аккаунт и по умолчанию один Chrome (порт 9222).');
+    const g = group(tr('Браузеры ИИ'), tr('Vibe управляет вашим Chrome: вход в аккаунт нужен один раз. Gemini и AI Studio используют один Google-аккаунт и по умолчанию один Chrome (порт 9222).'));
     for (const k of Object.keys(PROVIDERS)) {
       const info = S.cdp[k] || {};
       const c = el('div', 'conn');
       c.appendChild(el('i', 'dot ' + (info.online ? 'on' : 'off')));
-      const t = el('div', 't'); t.append(el('b', null, PROVIDERS[k].title + (S.provider === k ? ' · выбран' : '')), el('span', null, (info.url || '') + (info.online ? ' · подключён' : ' · не запущен')));
-      const b = el('button', 'btn small', info.online ? 'Подключён' : 'Запустить Chrome');
+      const t = el('div', 't'); t.append(el('b', null, PROVIDERS[k].title + (S.provider === k ? tr(' · выбран') : '')), el('span', null, (info.url || '') + (info.online ? tr(' · подключён') : tr(' · не запущен'))));
+      const b = el('button', 'btn small', info.online ? tr('Подключён') : tr('Запустить Chrome'));
       b.disabled = !!info.online;
       b.addEventListener('click', () => launchChrome(k));
-      const sel = el('button', 'btn small ghost', 'Выбрать');
+      const sel = el('button', 'btn small ghost', tr('Выбрать'));
       sel.addEventListener('click', () => { if (S.provider !== k) pickModel(k, S.models[k] || ''); });
       c.append(t, sel, b);
       g.appendChild(c);
     }
     const g2 = group('Vibe CLI');
     const c2 = el('div', 'conn');
-    const t2 = el('div', 't'); t2.append(el('b', null, S.vibeRoot || 'не найден'), el('span', null, S.python ? 'Python: ' + S.python : 'Укажите папку, где лежит vibe.py'));
-    const pb = el('button', 'btn small', 'Указать папку');
+    const t2 = el('div', 't'); t2.append(el('b', null, S.vibeRoot || tr('не найден')), el('span', null, S.python ? 'Python: ' + S.python : tr('Укажите папку, где лежит vibe.py')));
+    const pb = el('button', 'btn small', tr('Указать папку'));
     pb.addEventListener('click', async () => { const r = await api.pickVibeRoot(); if (r && r.ok) { toast('Vibe CLI: ' + r.root); pollStatus(); } else if (r && r.error) toast(r.error, true); });
     c2.append(t2, pb);
     g2.appendChild(c2);
@@ -1195,7 +1210,7 @@
     box.textContent = '';
     const a = el('div', 'about');
     const logo = document.querySelector('.brand .logo').cloneNode(true);
-    a.append(logo, el('h2', null, 'Vibe IDE ' + VERSION), el('div', 'hint', 'Оболочка для Vibe CLI: чат с ИИ по подписке (Gemini, Claude, Google AI Studio), подбор контекста, патчи и проверка сборки.'));
+    a.append(logo, el('h2', null, 'Vibe IDE ' + VERSION), el('div', 'hint', tr('Оболочка для Vibe CLI: чат с ИИ по подписке (Gemini, Claude, Google AI Studio), подбор контекста, патчи и проверка сборки.')));
     box.appendChild(a);
   }
 
@@ -1249,10 +1264,10 @@
     $('modelChip').addEventListener('click', (e) => { e.stopPropagation(); S.modelPop.open ? closeModelPop() : openModelPop($('modelChip'), false); });
     $('cModel').addEventListener('click', (e) => { e.stopPropagation(); S.modelPop.open ? closeModelPop() : openModelPop($('cModel'), true); });
     document.addEventListener('mousedown', (e) => { if (S.modelPop.open && !$('modelPop').contains(e.target) && !e.target.closest('#modelChip, #cModel')) closeModelPop(); });
-    $('cAuto').addEventListener('click', () => { S.autoContext = !S.autoContext; saveSettings(); silent('/autocontext ' + (S.autoContext ? 'on' : 'off')); updateStatusBar(); schedulePreview(); toast('Автоподбор контекста: ' + (S.autoContext ? 'включён' : 'выключен')); });
+    $('cAuto').addEventListener('click', () => { S.autoContext = !S.autoContext; saveSettings(); silent('/autocontext ' + (S.autoContext ? 'on' : 'off')); updateStatusBar(); schedulePreview(); toast(tr('Автоподбор контекста: ') + (S.autoContext ? tr('включён') : tr('выключен'))); });
     $('cPlan').addEventListener('click', () => { S.plan = !S.plan; saveSettings(); updateStatusBar(); });
-    $('undoBtn').addEventListener('click', () => { if (!S.running) { toast('Сессия не запущена', true); return; } enqueue('/undo'); });
-    $('resetBtn').addEventListener('click', () => { if (!S.running) { toast('Чат и так пустой — сессия не запущена'); return; } enqueue('/reset'); });
+    $('undoBtn').addEventListener('click', () => { if (!S.running) { toast(tr('Сессия не запущена'), true); return; } enqueue('/undo'); });
+    $('resetBtn').addEventListener('click', () => { if (!S.running) { toast(tr('Чат и так пустой — сессия не запущена')); return; } enqueue('/reset'); });
 
     const ta = $('prompt');
     const resize = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 190) + 'px'; };
@@ -1286,7 +1301,7 @@
       if (v && !v.startsWith('#')) { S.managed.add(v); saveManaged(); }
     });
     $('refreshCtx').addEventListener('click', () => { refreshTree(); schedulePreview(); });
-    $('openIgnore').addEventListener('click', async () => { if (!(await api.revealIgnore(S.project))) toast('Файла .vibeignore ещё нет — добавьте правило', true); });
+    $('openIgnore').addEventListener('click', async () => { if (!(await api.revealIgnore(S.project))) toast(tr('Файла .vibeignore ещё нет — добавьте правило'), true); });
 
     api.on('vibe-event', onEvent);
     api.on('proc-out', (p) => { for (const l of String(p.text).split('\n')) if (l.trim()) addLogLine('', l); });
@@ -1297,9 +1312,9 @@
   function buildHero() {
     const box = $('heroCards');
     for (const [t, d, text] of [
-      ['Исправить ошибку', 'Найдёт причину и поправит код', 'Найди и исправь ошибку: '],
-      ['Новая функция', 'Добавит возможность в проект', 'Добавь функцию: '],
-      ['Рефакторинг', 'Приведёт код в порядок без смены поведения', 'Отрефактори и упрости: ']
+      [tr('Исправить ошибку'), tr('Найдёт причину и поправит код'), tr('Найди и исправь ошибку: ')],
+      [tr('Новая функция'), tr('Добавит возможность в проект'), tr('Добавь функцию: ')],
+      [tr('Рефакторинг'), tr('Приведёт код в порядок без смены поведения'), tr('Отрефактори и упрости: ')]
     ]) {
       const b = el('button', 'hcard');
       b.append(el('b', null, t), document.createTextNode(d));
@@ -1311,6 +1326,7 @@
   /* ================= старт ================= */
 
   async function init() {
+    api.setLang(window.VIBE_LANG);
     loadSettings();
     fillIcons();
     applyTheme();

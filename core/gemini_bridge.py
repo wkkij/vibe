@@ -9,6 +9,7 @@ from typing import List, Optional, Tuple
 
 from .config import VibeConfig
 from .events import GenerationStopped, clear_stop, emit, stop_requested
+from .i18n import t
 from .prompts import PromptBook
 from .providers import Provider, catalog_for, get_provider
 
@@ -104,19 +105,18 @@ class WebChatBridge:
             self.last_transport = "none"
             return self._strip_canary(await self._send_via_cdp(full_message, None, False, "none", None), canary)
         raise RuntimeError(
-            f"{self.prov.title} так и не увидел контекст проекта ни одним способом "
-            f"({', '.join(chain)}). Последний ответ модели:\n{last_text[:500]}"
+            t("{title} так и не увидел контекст проекта ни одним способом ({chain}). Последний ответ модели:\n{last}", title=self.prov.title, chain=", ".join(chain), last=last_text[:500])
         ) from last_err
 
     def _transport_chain(self) -> List[str]:
-        t = self.config.transport
-        if t == "auto":
+        mode = self.config.transport
+        if mode == "auto":
             base = list(self.prov.auto_chain)
             extra = [x for x in ("zip", "base64") if x not in base]
             if base and base[-1] == "inline":  # текстом в сообщении — самый последний запасной вариант
                 return base[:-1] + extra + ["inline"]
             return base + extra
-        return [t]
+        return [mode]
 
     def _materialize(self, bundle: Path, transport: str) -> Tuple[Path, str]:
         """Готовит файл для форматов zip / base64. -> (файл для вложения, пояснение для модели)."""
@@ -126,13 +126,11 @@ class WebChatBridge:
             zp = bundle.with_suffix(".zip")
             with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED) as z:
                 z.write(bundle, arcname=bundle.name)
-            return zp, (f"Контекст проекта лежит во вложенном архиве `{zp.name}`: внутри один файл `{bundle.name}`. "
-                        "Распакуй его и используй как контекст репозитория.")
+            return zp, self.prompts.pack.BUNDLE_ZIP.format(zip=zp.name, bundle=bundle.name)
         raw = base64.b64encode(bundle.read_bytes()).decode("ascii")
         bp = bundle.with_name(bundle.stem + ".b64.txt")
         bp.write_text("\n".join(raw[i : i + 120] for i in range(0, len(raw), 120)), encoding="utf-8")
-        return bp, (f"Во вложенном файле `{bp.name}` — base64 (UTF-8 текст) файла `{bundle.name}` с контекстом проекта. "
-                    "Склей строки, декодируй и используй как контекст репозитория.")
+        return bp, self.prompts.pack.BUNDLE_B64.format(file=bp.name, bundle=bundle.name)
 
     @staticmethod
     def _strip_canary(text: str, canary: Optional[str]) -> str:
@@ -158,9 +156,8 @@ class WebChatBridge:
             browser = await p.chromium.connect_over_cdp(self.config.cdp_url)
         except Exception as e:
             raise RuntimeError(
-                f"Не удалось подключиться к Chrome по адресу {self.config.cdp_url}.\n"
-                f"Запустите скрипт scripts/start_chrome_{self.prov.key}_* (.bat), "
-                f"войдите в аккаунт на {self.prov.url} и повторите.\nДетали: {e}"
+                t("Не удалось подключиться к Chrome по адресу {cdp}.\nЗапустите скрипт scripts/start_chrome_{key}_* (.bat), войдите в аккаунт на {url} и повторите.\nДетали: {e}",
+                  cdp=self.config.cdp_url, key=self.prov.key, url=self.prov.url, e=e)
             )
         context = browser.contexts[0] if browser.contexts else await browser.new_context()
         page = next((pg for pg in context.pages if self.prov.host in pg.url), None)
@@ -175,7 +172,7 @@ class WebChatBridge:
             await page.wait_for_selector(self.prov.input, timeout=20000)
         except Exception:
             raise RuntimeError(
-                f"Поле ввода на {self.prov.host} не найдено. Войдите в аккаунт в открытом окне Chrome."
+                t("Поле ввода на {host} не найдено. Войдите в аккаунт в открытом окне Chrome.", host=self.prov.host)
             )
         return page
 
@@ -199,11 +196,11 @@ class WebChatBridge:
             if transport in ("file", "paste"):
                 ok = await self._attach_file(page, attachment_path, transport)
                 if not ok:
-                    raise BlindModelError(f"Не удалось прикрепить файл способом '{transport}'.")
+                    raise BlindModelError(t("Не удалось прикрепить файл способом '{mode}'.", mode=transport))
             elif transport in ("zip", "base64"):
                 fpath, note = self._materialize(attachment_path, transport)
                 if not (await self._attach_file(page, fpath, "file") or await self._attach_file(page, fpath, "paste")):
-                    raise BlindModelError(f"Не удалось прикрепить файл способом '{transport}'.")
+                    raise BlindModelError(t("Не удалось прикрепить файл способом '{mode}'.", mode=transport))
                 message = f"{note}\n\n{message}"
             elif transport == "inline":
                 body = attachment_path.read_text(encoding="utf-8", errors="replace")
@@ -211,7 +208,7 @@ class WebChatBridge:
 
             for extra in list(self.pending_files):
                 if not (extra.exists() and (await self._attach_file(page, extra, "file") or await self._attach_file(page, extra, "paste"))):
-                    emit("log", level="warn", text=f"Не удалось прикрепить {extra.name} к чату — файл пропущен.")
+                    emit("log", level="warn", text=t("Не удалось прикрепить {name} к чату — файл пропущен.", name=extra.name))
                 else:
                     await asyncio.sleep(0.8)
 
@@ -219,7 +216,7 @@ class WebChatBridge:
                 message += "\n\n" + self.prompts.canary(canary)
 
             if not await self._fill_editor(page, message):
-                raise RuntimeError(f"Не удалось вставить текст в поле ввода {self.prov.title}.")
+                raise RuntimeError(t("Не удалось вставить текст в поле ввода {title}.", title=self.prov.title))
 
             before = await page.locator(self.prov.response).count()
             emit("phase", phase="sending")
@@ -469,7 +466,7 @@ class WebChatBridge:
                 stable, last = 0, cur
         if last:
             return last.strip()
-        raise TimeoutError(f"Превышено время ожидания ответа от {self.prov.title}.")
+        raise TimeoutError(t("Превышено время ожидания ответа от {title}.", title=self.prov.title))
 
     # ------------------------------------------------------------------ models
 
@@ -651,9 +648,9 @@ class WebChatBridge:
             for i in range(min(await opts.count(), 12)):
                 try:
                     if await opts.nth(i).is_visible():
-                        t = " ".join((await opts.nth(i).inner_text(timeout=400)).split())
-                        if t:
-                            names.append(t)
+                        label = " ".join((await opts.nth(i).inner_text(timeout=400)).split())
+                        if label:
+                            names.append(label)
                 except Exception:
                     continue
             return names, ctl
@@ -662,7 +659,7 @@ class WebChatBridge:
 
     async def _select_model(self, page, wanted: str) -> Tuple[bool, str]:
         if not await self._open_model_menu(page):
-            return False, f"Переключатель моделей на странице {self.prov.title} не найден (см. selector_overrides)."
+            return False, t("Переключатель моделей на странице {title} не найден (см. selector_overrides).", title=self.prov.title)
         entries = await self._menu_entries(page)
         hit = self._match(entries, wanted)
         if hit is None:
@@ -670,9 +667,9 @@ class WebChatBridge:
             w = self._norm(wanted)
             locked = next((e for e in entries if e["kind"] == "locked" and w and w in self._norm(e["name"])), None)
             if locked:
-                return False, f"Модель '{locked['name']}' недоступна в вашем плане (нужно улучшить подписку)."
+                return False, t("Модель '{name}' недоступна в вашем плане (нужно улучшить подписку).", name=locked["name"])
             names = "; ".join(e["name"] for e in entries if e["kind"] == "model")
-            return False, f"Модель '{wanted}' не найдена. Доступно: {names}"
+            return False, t("Модель '{wanted}' не найдена. Доступно: {names}", wanted=wanted, names=names)
         await page.locator(self.prov.model_item).nth(hit["idx"]).click()
         await asyncio.sleep(1.0)
         await self._close_menu(page)
@@ -687,11 +684,11 @@ class WebChatBridge:
     async def _open_thinking_submenu(self, page) -> Tuple[bool, List[dict], str]:
         """Открывает подменю «Thinking level». -> (ok, пункты подменю, сообщение об ошибке)."""
         if not await self._open_model_menu(page):
-            return False, [], "Меню модели не найдено."
+            return False, [], t("Меню модели не найдено.")
         entries = await self._menu_entries(page)
         setting = next((e for e in entries if e["kind"] == "setting"), None)
         if setting is None:
-            return False, entries, "В меню нет пункта «Thinking level»."
+            return False, entries, t("В меню нет пункта «Thinking level».")
         before = {e["full"] for e in entries}
         await page.locator(self.prov.model_item).nth(setting["idx"]).click()
         await asyncio.sleep(1.0)
@@ -707,12 +704,12 @@ class WebChatBridge:
         if self.prov.key == "aistudio":
             names, ctl = await self._aistudio_levels(page)
             if not names:
-                return False, "В интерфейсе AI Studio не найден переключатель «Thinking level» (у этой модели его может не быть)."
+                return False, t("В интерфейсе AI Studio не найден переключатель «Thinking level» (у этой модели его может не быть).")
             hit = next((n for n in names if self._norm(wanted) == self._norm(n)), None) or next(
                 (n for n in names if any(w in n.lower() for w in words) or self._norm(wanted) in self._norm(n)), None)
             if hit is None:
                 await page.keyboard.press("Escape")
-                return False, f"Уровень '{wanted}' не найден в интерфейсе. Доступно: " + "; ".join(names)
+                return False, t("Уровень '{wanted}' не найден в интерфейсе. Доступно: ", wanted=wanted) + "; ".join(names)
             await page.locator("mat-option, [role=option]").filter(has_text=hit).first.click()
             await asyncio.sleep(0.6)
             return True, hit
@@ -734,12 +731,12 @@ class WebChatBridge:
                     return True, hit["name"]
                 names = "; ".join(e["name"] for e in sub)
                 await self._close_menu(page)
-                return False, f"Уровень '{wanted}' не найден в подменю. Доступно: {names}"
+                return False, t("Уровень '{wanted}' не найден в подменю. Доступно: {names}", wanted=wanted, names=names)
             await self._close_menu(page)
 
         # запасной путь / Claude: ищем пункт или переключатель по ключевым словам
         if not await self._open_model_menu(page):
-            return False, "Меню модели не найдено."
+            return False, t("Меню модели не найдено.")
         entries = await self._menu_entries(page)
         kw = self._reasoning_words(lvl) or words
         hit = None
@@ -749,7 +746,7 @@ class WebChatBridge:
             hit = self._match(entries, wanted)
         if hit is None:
             await self._close_menu(page)
-            return False, f"Пункт рассуждений '{wanted}' не найден. Доступно: " + "; ".join(e["name"] for e in entries)
+            return False, t("Пункт рассуждений '{wanted}' не найден. Доступно: ", wanted=wanted) + "; ".join(e["name"] for e in entries)
 
         toggle_like = self.prov.key == "claude"
         want_on = lvl != "off"
@@ -759,7 +756,7 @@ class WebChatBridge:
             await page.locator(self.prov.model_item).nth(hit["idx"]).click()
             await asyncio.sleep(0.8)
             await self._close_menu(page)
-        return True, hit["name"] + (" (вкл)" if toggle_like and want_on else " (выкл)" if toggle_like else "")
+        return True, hit["name"] + (t(" (вкл)") if toggle_like and want_on else t(" (выкл)") if toggle_like else "")
 
     def _reasoning_words(self, wanted: str) -> List[str]:
         return self.prov.reasoning_keywords.get(wanted.lower(), [])

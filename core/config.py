@@ -3,11 +3,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+from .i18n import LANGS, resolve_language, set_lang, t
 from .prompts import VALID_STYLES, PromptBook
 from .providers import PROVIDERS
 
 load_dotenv()
-_classic = PromptBook("classic")
+_classic = PromptBook("classic", lang="ru")  # константы SYSTEM_PROMPT_* — русский «классический» вариант (обратная совместимость)
 
 DEFAULT_IGNORE_PATTERNS = [
     ".git/",
@@ -66,6 +67,7 @@ DEFAULT_IGNORE_PATTERNS = [
 VALID_TRANSPORTS = ("auto", "file", "paste", "inline", "zip", "base64")
 
 # Форматы отправки контекста: id -> (название, описание). Показываются в IDE и в /transport.
+# Сами строки — ключи переводов (core/locale_en.py); на языке интерфейса их отдаёт transport_info().
 TRANSPORT_INFO = {
     "auto": ("Авто", "Пробует по очереди: файл → вставка → ZIP → base64-файл → текст, пока чат не увидит контекст"),
     "file": ("Файл .txt", "Контекст — обычным файлом через кнопку «+» в чате"),
@@ -74,6 +76,12 @@ TRANSPORT_INFO = {
     "zip": ("ZIP-архив", "Контекст упаковывается в .zip и прикрепляется файлом (меньше размер)"),
     "base64": ("Base64-файл", "Контекст кодируется в base64 и прикрепляется отдельным .txt-файлом"),
 }
+
+def transport_info(key: str):
+    """(название, описание) способа передачи контекста на языке интерфейса."""
+    title, desc = TRANSPORT_INFO[key]
+    return t(title), t(desc)
+
 
 # Тексты промптов (в нескольких вариациях) лежат в core/prompts.py. Константы ниже — «классический» вариант,
 # оставлены для обратной совместимости.
@@ -114,6 +122,8 @@ class VibeConfig:
         self.context_synonyms = {}  # свои пары «русская основа» -> [английские слова из кода]
         # вариации промпта, вставляемого в чат: auto | classic | concise | strict | mentor | pair | friendly
         self.prompt_style = os.getenv("VIBE_PROMPT_STYLE", "auto").lower()
+        # язык интерфейса и промптов: en | ru | auto (по языку системы). Переопределяется VIBE_LANG, --lang и /lang
+        self.language = os.getenv("VIBE_LANG", "auto").lower()
 
         self.load_project_config()
         if self.provider not in PROVIDERS:
@@ -122,6 +132,9 @@ class VibeConfig:
             self.prompt_style = "auto"
         if self.transport not in VALID_TRANSPORTS:
             self.transport = "auto"
+        if self.language not in LANGS + ("auto",):
+            self.language = "auto"
+        set_lang(self.language)
 
     # --- значения для текущего провайдера (чтобы остальной код не знал про словари) ---
     @property
@@ -171,6 +184,8 @@ class VibeConfig:
                 self.auto_context_budget = int(data.get("auto_context_budget", self.auto_context_budget))
                 self.context_synonyms = data.get("context_synonyms", self.context_synonyms)
                 self.prompt_style = data.get("prompt_style", self.prompt_style)
+                if not os.getenv("VIBE_LANG"):  # переменная окружения важнее файла
+                    self.language = str(data.get("language", self.language)).lower()
             except Exception:
                 pass
 
@@ -191,6 +206,7 @@ class VibeConfig:
             "auto_context_budget": self.auto_context_budget,
             "context_synonyms": self.context_synonyms,
             "prompt_style": self.prompt_style,
+            "language": self.language,
         }
         self.config_file.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 

@@ -11,21 +11,23 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from core.commands import COMMANDS, parse_model_args, resolve
+from core import mascot, ui
+from core.commands import COMMANDS, describe, help_groups, parse_model_args, resolve
 from core.completion import make_session
-from core.config import SYSTEM_PROMPT_PATCHER, SYSTEM_PROMPT_PLANNER, TRANSPORT_INFO, VALID_TRANSPORTS, VibeConfig
+from core.config import VALID_TRANSPORTS, VibeConfig, transport_info
 from core.context_packer import ContextPacker
 from core.context_selector import ContextSelector, parse_need_files
 from core.events import GenerationStopped, clear_stop, emit, ide_mode, strip_markup
 from core.gemini_bridge import WebChatBridge
+from core.i18n import LANG_TITLES, LANGS, get_lang, resolve_language, set_lang, t
 from core.patcher import DiffPatcher
-from core.prompts import STYLE_TITLES, VALID_STYLES, PromptBook, describe_styles
+from core.prompts import VALID_STYLES, PromptBook, describe_styles, style_title
 from core.providers import PROVIDERS, catalog_for
 from core.runner import BrowserVerifier, TerminalRunner
 
 console = Console()
 IDE = ide_mode()  # Vibe IDE: вместо рамок и таблиц CLI шлёт события (core/events.py), интерфейс рисует IDE
-VERSION = "0.01.0"
+VERSION = "0.01.1"
 
 
 def say(text: str, level: str = "info") -> None:
@@ -36,27 +38,17 @@ def say(text: str, level: str = "info") -> None:
         console.print(text)
 
 
-def show_answer(md: str, title: str, border: str, kind: str = "answer") -> None:
+def show_answer(md: str, title: str, kind: str = "answer") -> None:
     if IDE:
         emit("answer", text=md, title=title, kind=kind)
     else:
-        console.print(Panel(Markdown(md), title=title, border_style=border))
+        console.print(ui.answer_panel(Markdown(md), title, kind))
 
-HELP_TEXT = """[bold]Команды:[/bold]
-  <текст>              задача: упаковать проект → модель → патчи → проверка
-  /plan <задача>       сначала план, потом код
-  /provider gemini|claude|aistudio   переключить ИИ-провайдера (Gemini и AI Studio делят один Chrome и аккаунт)
-  /model [имя|№] [low|medium|high]  список / выбор модели и уровня (`/model 3.1 pro high`)
-  /reasoning [low|medium|high|off|имя]  уровень рассуждений
-  /transport [способ]  как передавать контекст: auto, file, paste, inline, base64, zip
-  /verify_cmd <cmd>    команда проверки после патчей
-  /fix [cmd]           прогнать проверку и починить ошибки
-  /check_ui [url]      проверить фронтенд в headless-браузере
-  /undo                откатить последний патч
-  /context             что попадёт в контекст
-  /reset               новый чат
-  /init                создать .vibe.json и VIBE.md
-  /exit                выход"""
+
+def show_help() -> None:
+    """Экран /help: команды по группам, описания на языке интерфейса."""
+    console.print(ui.help_panel(help_groups(), describe))
+    console.print(ui.dim(t("Примеры: `/model 3.1 pro high`, `/provider claude`, `/lang en`")), highlight=False)
 
 
 class VibeOrchestrator:
@@ -82,6 +74,7 @@ class VibeOrchestrator:
         self._selector = None
         self.attachments: list = []    # файлы, прикреплённые пользователем к следующему сообщению
         self.bridge.pending_files = self.attachments
+        self.mood = "idle"             # настроение Vibi в строке ввода: idle | happy | error | sleep
 
     @property
     def title(self) -> str:
@@ -98,13 +91,13 @@ class VibeOrchestrator:
         emit(
             "hello", version=VERSION, provider=c.provider, title=self.title, model=c.model, reasoning=c.reasoning,
             auto_context=c.auto_context, max_files=c.auto_context_max_files, budget=c.auto_context_budget,
-            prompt_style=c.prompt_style, styles=describe_styles(), transport=c.transport, yolo=self.yolo_mode, transports=[{"id": k, "title": TRANSPORT_INFO[k][0], "desc": TRANSPORT_INFO[k][1]} for k in VALID_TRANSPORTS], verify_cmd=c.verify_cmd,
-            root=str(self.root),
+            prompt_style=c.prompt_style, styles=describe_styles(), transport=c.transport, yolo=self.yolo_mode, transports=[{"id": k, "title": transport_info(k)[0], "desc": transport_info(k)[1]} for k in VALID_TRANSPORTS], verify_cmd=c.verify_cmd,
+            root=str(self.root), lang=get_lang(),
         )
 
     def ask_confirm(self, text: str, default: bool = True) -> bool:
         if self.yolo_mode:
-            say("[dim]⚡ Без подтверждений: выполняю автоматически[/dim]")
+            say(ui.dim("⚡ " + t("Без подтверждений: выполняю автоматически")))
             return True
         if IDE:
             emit("ask", kind="confirm", text=strip_markup(text), default="y" if default else "n")
@@ -127,44 +120,23 @@ class VibeOrchestrator:
         return Prompt.ask(text, default=default)
 
     def print_banner(self):
-        table = Table.grid(padding=(0, 2))
-        table.add_column(style="bold cyan")
-        table.add_column(style="white")
-        table.add_row("Проект:", str(self.root))
-        table.add_row("Подключение:", "[bold green]Chrome (CDP)[/bold green] (без платного API)")
-        table.add_row(
-            "Команда авто-проверки:",
-            f"[yellow]{self.config.verify_cmd}[/yellow]" if self.config.verify_cmd else "[dim]не задана (укажите через /verify_cmd)[/dim]",
-        )
-        table.add_row("Провайдер:", f"[bold magenta]{self.title}[/bold magenta]  [dim](/provider)[/dim]")
-        table.add_row("Модель:", f"[bold]{self.config.model or 'по умолчанию'}[/bold]  [dim](/model)[/dim]")
-        table.add_row("Рассуждения:", f"[bold]{self.config.reasoning or 'по умолчанию'}[/bold]  [dim](/reasoning)[/dim]")
-        table.add_row("Передача контекста:", f"{self.config.transport}  [dim](/transport)[/dim]")
-        table.add_row("Auto-Heal итераций:", str(self.config.max_heal_retries))
-
-        console.print(
-            Panel(
-                table,
-                title="[bold magenta]⚡ Vibe CLI — Персональный локальный вайбкодер (Google AI Pro)[/bold magenta]",
-                subtitle="[dim]Команды: /plan, /fix, /undo, /context, /provider, /model, /reasoning, /transport, /check_ui, /init, /help, /exit[/dim]",
-                border_style="bright_blue",
-            )
-        )
+        ui.show_banner(console, self, VERSION)
 
     def show_context_stats(self):
         files = self.packer.collect_files()
         _, count, approx_tokens = self.packer.pack_repository()
-        console.print(
-            Panel(
-                f"Найдено исходных файлов: [bold cyan]{count}[/bold cyan]\n"
-                f"Примерный объем контекста: [bold green]~{approx_tokens:,} токенов[/bold green] "
-                f"(Окно Google AI Pro вмещает до 1,000,000+ токенов)\n\n"
-                f"[dim]{self.packer.build_tree_string(files[:35])}"
-                + (f"\n  ... и еще {len(files) - 35} файлов[/dim]" if len(files) > 35 else "[/dim]"),
-                title="📦 Контекст репозитория",
-                border_style="cyan",
-            )
+        body = (
+            t("Найдено исходных файлов: [bold cyan]{n}[/bold cyan]", n=count) + "\n"
+            + t("Примерный объем контекста: [bold green]~{tokens} токенов[/bold green] (Окно Google AI Pro вмещает до 1,000,000+ токенов)", tokens=f"{approx_tokens:,}")
+            + f"\n\n[dim]{self.packer.build_tree_string(files[:35])}"
+            + (t("\n  ... и еще {n} файлов", n=len(files) - 35) + "[/dim]" if len(files) > 35 else "[/dim]")
         )
+        console.print(ui.info_panel(body, t("Контекст репозитория")))
+
+    async def ask_model(self, status: str, **kwargs) -> str:
+        """send_prompt с живой анимацией Vibi в терминале (в IDE анимацию рисует сама IDE)."""
+        with ui.working(console, status, enabled=not IDE):
+            return await self.bridge.send_prompt(**kwargs)
 
     # --- вложения (zip / изображения) и формат отправки zip ---
     ATTACH_EXT = (".zip", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
@@ -175,18 +147,18 @@ class VibeOrchestrator:
     def add_attachment(self, raw: str):
         path = Path(raw.strip().strip('"')).expanduser()
         if not path.is_file():
-            say(f"[red]Файл не найден: {path}[/red]", "err")
+            say(ui.err(t("Файл не найден: {path}", path=path)), "err")
             return
         if path.suffix.lower() not in self.ATTACH_EXT:
-            say(f"[red]Тип {path.suffix or '?'} не поддерживается. Можно: zip, png, jpg, webp, gif[/red]", "err")
+            say(ui.err(t("Тип {ext} не поддерживается. Можно: zip, png, jpg, webp, gif", ext=path.suffix or "?")), "err")
             return
         if path.stat().st_size > 25 * 1024 * 1024:
-            say("[red]Файл больше 25 МБ — чат его не примет.[/red]", "err")
+            say(ui.err(t("Файл больше 25 МБ — чат его не примет.")), "err")
             return
         if not any(p == path for p in self.attachments):
             self.attachments.append(path)
         self._emit_attachments()
-        say(f"[green]📎 Прикреплено: {path.name} (уйдёт со следующим сообщением)[/green]", "ok")
+        say(ui.ok(t("Прикреплено: {name} (уйдёт со следующим сообщением)", name=path.name)), "ok")
 
     def _pack_for_task(self, user_task: str, canary: str):
         """Собирает контекст: весь проект или (автоподбор) только файлы под задачу. -> (bundle|None, task_text, files, tokens)."""
@@ -207,10 +179,7 @@ class VibeOrchestrator:
             partial = sel.mode == "auto"
             note = ""
             if partial:
-                note = (
-                    f"Включены {len(sel.items)} из {sel.total_files} файлов проекта, выбранные по описанию задачи. "
-                    "Остальные перечислены только в <project_overview>. Нужен другой файл — ответь строкой NEED_FILES: путь1, путь2."
-                )
+                note = self.prompts.pack.SCOPE_NOTE.format(n=len(sel.items), total=sel.total_files)
             bundle, n, tokens = self.packer.write_context_bundle_file(canary=canary, selected=sel.paths, scope_note=note)
             self.sent_files = set(sel.rels)
             self.scope_partial = partial
@@ -231,14 +200,15 @@ class VibeOrchestrator:
         emit("phase", phase="packing")
         bundle_path, user_task, file_count, tokens = self._pack_for_task(user_task, canary)
         if bundle_path:
-            say(f"[dim]📦 Упаковано файлов: {file_count} (~{tokens:,} токенов) -> {bundle_path.name}[/dim]")
+            say(ui.dim(t("Упаковано файлов: {n} (~{tokens} токенов) -> {name}", n=file_count, tokens=f"{tokens:,}", name=bundle_path.name)))
         user_task = self._with_dirty_sync(user_task)
         attach = bundle_path if not self.session_initialized else None
         sys_patch = self.prompts.system_patcher(self.scope_partial)
 
         if two_phase_plan:
-            say(f"[bold yellow]🧠 Фаза 1: Составление архитектурного плана ({self.title})...[/bold yellow]")
-            plan_response = await self.bridge.send_prompt(
+            say(ui.step(t("Фаза 1: составление архитектурного плана ({title})", title=self.title)))
+            plan_response = await self.ask_model(
+                t("Vibi думает над планом…"),
                 prompt=self.prompts.plan_task(user_task),
                 system_instruction=self.prompts.system_planner(),
                 attachment_path=attach,
@@ -250,17 +220,17 @@ class VibeOrchestrator:
             self._report_transport()
             attach = None
 
-            show_answer(plan_response, "📋 План реализации", "yellow", kind="plan")
+            show_answer(plan_response, t("План реализации"), kind="plan")
 
             if not self.yolo_mode:
                 user_decision = self.ask_text(
-                    "[bold cyan]Утвердить план?[/bold cyan] (y — кодить / n — отмена / или введите уточнения к плану)",
+                    t("[bold cyan]Утвердить план?[/bold cyan] (y — кодить / n — отмена / или введите уточнения к плану)"),
                     default="y",
                 )
-                if user_decision.strip().lower() in ("n", "no", "нет", "отмена"):
-                    say("[red]Задача отменена пользователем.[/red]", "err")
+                if user_decision.strip().lower() in ("n", "no", "нет", "отмена", "cancel"):
+                    say(ui.err(t("Задача отменена пользователем.")), "err")
                     return
-                elif user_decision.strip().lower() not in ("y", "yes", "да", "ok", "ок"):
+                elif user_decision.strip().lower() not in ("y", "yes", "да", "ok", "ок", "go"):
                     user_task = self.prompts.plan_revise(user_decision)
                 else:
                     user_task = self.prompts.plan_approved()
@@ -270,8 +240,9 @@ class VibeOrchestrator:
         else:
             code_prompt = self.prompts.task(user_task)
 
-        say("[bold green]🚀 Генерация кода и SEARCH/REPLACE патчей...[/bold green]")
-        response = await self.bridge.send_prompt(
+        say(ui.step(t("Генерация кода и SEARCH/REPLACE патчей…")))
+        response = await self.ask_model(
+            t("Vibi пишет код…"),
             prompt=code_prompt,
             system_instruction=sys_patch,
             attachment_path=attach,
@@ -293,13 +264,14 @@ class VibeOrchestrator:
             allowed = {f.relative_to(self.root).as_posix() for f in self.packer.collect_files()}
             ok = [w for w in wanted if w in allowed]
             if not ok:
-                say(f"[yellow]Модель запросила файлы, которых нет в проекте или они исключены: {', '.join(wanted)}[/yellow]", "warn")
+                say(ui.warn(t("Модель запросила файлы, которых нет в проекте или они исключены: {files}", files=", ".join(wanted))), "warn")
                 return response
-            say(f"[cyan]📎 Модель запросила файлы: {', '.join(ok)}[/cyan]")
+            say(ui.info(t("Модель запросила файлы: {files}", files=", ".join(ok))))
             emit("context", mode="extra", extra=ok)
             self.sent_files.update(ok)
             emit("phase", phase="sending")
-            response = await self.bridge.send_prompt(
+            response = await self.ask_model(
+                t("Vibi досылает файлы…"),
                 prompt=self.prompts.need_files(self.packer.pack_files(ok)),
                 system_instruction=self.prompts.system_patcher(True),
                 new_chat=False,
@@ -308,9 +280,9 @@ class VibeOrchestrator:
 
     def _report_transport(self):
         self._emit_attachments()
-        t = self.bridge.last_transport
-        if t not in ("-", "none"):
-            say(f"[dim]📎 Контекст передан способом: {t}[/dim]")
+        tr = self.bridge.last_transport
+        if tr not in ("-", "none"):
+            say(ui.dim(t("Контекст передан способом: {mode}", mode=tr)))
 
     def _with_dirty_sync(self, task: str) -> str:
         """Если после отправки контекста файлы менялись, дописываем их актуальное содержимое в запрос."""
@@ -331,7 +303,7 @@ class VibeOrchestrator:
         if IDE:
             return
         for r in results:
-            say(f"  -> {r.file_path}: {r.action} ({r.message})")
+            say(f"  {ui.icon('arrow')} {r.file_path}: {r.action} ({r.message})")
 
     async def _repair_failed_blocks(self, results, rounds: int = 2):
         """Если SEARCH-блоки не совпали — отправляем модели реальный файл и просим переделать только их."""
@@ -339,26 +311,27 @@ class VibeOrchestrator:
             bad = [r for r in results if r.failed_blocks]
             if not bad:
                 return
-            say(f"[yellow]🩹 Не совпали SEARCH-блоки в {len(bad)} файл(ах) — прошу модель переписать (попытка {attempt}/{rounds})...[/yellow]", "warn")
+            say(ui.warn(t("Не совпали SEARCH-блоки в {n} файл(ах) — прошу модель переписать (попытка {attempt}/{rounds})…", n=len(bad), attempt=attempt, rounds=rounds)), "warn")
             emit("phase", phase="healing")
             parts = []
             for r in bad:
                 fp = self.root / r.file_path
                 actual = fp.read_text(encoding="utf-8", errors="replace") if fp.exists() else ""
                 blocks = "\n---\n".join(r.failed_blocks)
-                parts.append(f"ФАЙЛ {r.file_path} (текущее содержимое):\n```\n{actual}\n```\nНЕ СОВПАВШИЕ SEARCH-блоки:\n```\n{blocks}\n```")
-            resp = await self.bridge.send_prompt(
+                parts.append(self.prompts.pack.REPAIR_PART.format(path=r.file_path, actual=actual, blocks=blocks))
+            resp = await self.ask_model(
+                t("Vibi чинит патчи…"),
                 prompt=self.prompts.repair("\n\n".join(parts)),
                 system_instruction=self.prompts.system_patcher(self.scope_partial),
                 new_chat=False,
             )
-            show_answer(resp, f"🩹 Исправленные патчи #{attempt}", "yellow", kind="repair")
+            show_answer(resp, t("Исправленные патчи #{n}", n=attempt), kind="repair")
             results, _ = self.patcher.parse_and_apply(resp)
             self._track(results)
             self._report_results(results)
 
     async def _apply_and_auto_heal(self, model_response: str):
-        show_answer(model_response, f"🤖 Ответ {self.title}", "green")
+        show_answer(model_response, t("Ответ {title}", title=self.title), kind="answer")
         emit("phase", phase="applying")
 
         results, suggested_cmds = self.patcher.parse_and_apply(model_response)
@@ -366,32 +339,34 @@ class VibeOrchestrator:
 
         if results:
             self._report_results(results)
+            if any(r.action == "FAILED" for r in results):
+                self.mood = "error"
             if not IDE:
-                res_table = Table(title="Примененные изменения файлов", show_lines=True)
-                res_table.add_column("Файл", style="cyan")
-                res_table.add_column("Действие", style="bold")
-                res_table.add_column("Статус")
+                res_table = ui.new_table(t("Примененные изменения файлов"), show_lines=True)
+                res_table.add_column(t("Файл"), style=ui.BRAND2)
+                res_table.add_column(t("Действие"), style="bold")
+                res_table.add_column(t("Статус"))
                 for r in results:
-                    color = "green" if r.action != "FAILED" else "bold red"
+                    color = ui.OK if r.action != "FAILED" else f"bold {ui.ERR}"
                     res_table.add_row(r.file_path, f"[{color}]{r.action}[/{color}]", r.message)
                 console.print(res_table)
         else:
-            say("[dim]В ответе не обнаружено блоков модификации файлов.[/dim]")
+            say(ui.dim(t("В ответе не обнаружено блоков модификации файлов.")))
 
         await self._repair_failed_blocks(results)
 
         for cmd in suggested_cmds:
-            run_it = self.yolo_mode or self.ask_confirm(f"Выполнить предложенную команду `[bold yellow]{cmd}[/bold yellow]`?", default=True)
+            run_it = self.yolo_mode or self.ask_confirm(t("Выполнить предложенную команду `[bold yellow]{cmd}[/bold yellow]`?", cmd=cmd), default=True)
             if run_it:
-                say(f"[cyan]$ {cmd}[/cyan]")
+                say(f"[{ui.BRAND2}]$ {cmd}[/]")
                 emit("cmd", command=cmd, status="run")
                 exec_res = self.runner.run_cmd(cmd)
                 if exec_res.succeeded:
                     emit("cmd", command=cmd, status="ok", code=0)
-                    say("[green]✓ Команда выполнена успешно.[/green]", "ok")
+                    say(ui.ok(t("Команда выполнена успешно.")), "ok")
                 else:
                     emit("cmd", command=cmd, status="fail", code=exec_res.returncode, output=exec_res.combined_output(2000))
-                    say(f"[red]✗ Команда завершилась с ошибкой (код {exec_res.returncode}):[/red]\n{exec_res.stderr}", "err")
+                    say(ui.err(t("Команда завершилась с ошибкой (код {code}):", code=exec_res.returncode)) + f"\n{exec_res.stderr}", "err")
             else:
                 emit("cmd", command=cmd, status="skipped")
 
@@ -402,47 +377,45 @@ class VibeOrchestrator:
         total = self.config.max_heal_retries
         for attempt in range(1, total + 1):
             emit("phase", phase="verifying")
-            say(f"\n[bold cyan]🔍 Проверка сборки/тестов (Попытка {attempt}/{total}): `{verify_cmd}`[/bold cyan]")
+            say("\n" + ui.step(t("Проверка сборки/тестов (попытка {attempt}/{total}): `{cmd}`", attempt=attempt, total=total, cmd=verify_cmd)))
             exec_res = self.runner.run_cmd(verify_cmd)
 
             if exec_res.succeeded:
                 emit("verify", command=verify_cmd, attempt=attempt, total=total, ok=True)
-                say(f"[bold green]✅ Сборка и тесты (`{verify_cmd}`) прошли без единой ошибки![/bold green]", "ok")
+                self.mood = "happy"
+                say(ui.ok(t("Сборка и тесты (`{cmd}`) прошли без единой ошибки!", cmd=verify_cmd)), "ok")
                 return
 
             emit("verify", command=verify_cmd, attempt=attempt, total=total, ok=False, output=exec_res.combined_output(max_chars=3000))
             if not IDE:
-                console.print(
-                    Panel(
-                        exec_res.combined_output(max_chars=3000),
-                        title=f"[bold red]❌ Ошибка верификации (Exit code {exec_res.returncode}) — Запускаю Auto-Heal[/bold red]",
-                        border_style="red",
-                    )
-                )
+                console.print(ui.error_panel(exec_res.combined_output(max_chars=3000), t("Ошибка верификации (код {code}) — запускаю авто-исправление", code=exec_res.returncode)))
 
-            say("[yellow]🛠 Отправляю лог ошибки обратно в модель для автоматического исправления...[/yellow]", "warn")
+            say(ui.warn(t("Отправляю лог ошибки обратно в модель для автоматического исправления…")), "warn")
             emit("phase", phase="healing")
-            fix_response = await self.bridge.send_prompt(
+            fix_response = await self.ask_model(
+                t("Vibi исправляет ошибки…"),
                 prompt=self.prompts.heal(verify_cmd, exec_res.combined_output()),
                 system_instruction=self.prompts.system_patcher(self.scope_partial),
                 new_chat=False,
             )
 
-            show_answer(fix_response, f"🤖 Патч авто-исправления #{attempt}", "yellow", kind="heal")
+            show_answer(fix_response, t("Патч авто-исправления #{n}", n=attempt), kind="heal")
             results, _ = self.patcher.parse_and_apply(fix_response)
             self._track(results)
             self._report_results(results)
             await self._repair_failed_blocks(results)
 
-        say("[bold red]⚠️ Достигнут лимит попыток авто-исправления. Проверьте вывод выше или используйте /undo.[/bold red]", "err")
+        self.mood = "error"
+        say(ui.err(t("Достигнут лимит попыток авто-исправления. Проверьте вывод выше или используйте /undo.")), "err")
 
     async def continue_stopped(self):
         """Продолжает ответ, остановленный пользователем (тот же чат)."""
         if not self.session_initialized:
-            say("[red]Нечего продолжать: в этом чате ещё не было запроса.[/red]", "err")
+            say(ui.err(t("Нечего продолжать: в этом чате ещё не было запроса.")), "err")
             return
         clear_stop()
-        resp = await self.bridge.send_prompt(
+        resp = await self.ask_model(
+            t("Vibi продолжает ответ…"),
             prompt=self.prompts.continue_after_stop(),
             system_instruction=self.prompts.system_patcher(self.scope_partial),
             new_chat=False,
@@ -453,35 +426,34 @@ class VibeOrchestrator:
         self.last_partial = partial or ""
         if partial:
             self.session_initialized = True  # сообщение с контекстом уже ушло в чат
-            show_answer(partial, "⏹ Ответ остановлен", "yellow", kind="partial")
+            show_answer(partial, t("Ответ остановлен"), kind="partial")
         emit("stopped")
-        say("[yellow]⏹ Остановлено. Патчи не применялись. /continue — продолжить ответ.[/yellow]", "warn")
+        self.mood = "sleep"
+        say(ui.warn(t("Остановлено. Патчи не применялись. /continue — продолжить ответ.")), "warn")
 
     async def check_ui_and_heal(self, url: str):
-        console.print(f"[cyan]🌐 Запуск Playwright-субагента для проверки интерфейса: {url}[/cyan]")
+        console.print(ui.info(t("Запуск Playwright-субагента для проверки интерфейса: {url}", url=url)))
         screenshot_path, errors, title = await self.verifier.inspect_url(url)
         if errors:
             err_text = "\n".join(errors)
             if IDE:
                 emit("verify", command=f"check_ui {url}", attempt=1, total=1, ok=False, output=err_text)
             else:
-                console.print(Panel(err_text, title="🚨 Обнаружены ошибки в консоли браузера", border_style="red"))
-            if self.ask_confirm("Отправить ошибки браузера и скриншот в модель для авто-починки?", default=True):
-                prompt = (
-                    f"При открытии {url} (Title: {title}) в браузере обнаружены следующие ошибки консоли:\n"
-                    f"```\n{err_text}\n```\n"
-                    f"Исправь код проекта с помощью блоков SEARCH/REPLACE."
-                )
-                resp = await self.bridge.send_prompt(
+                console.print(ui.error_panel(err_text, t("Обнаружены ошибки в консоли браузера")))
+            if self.ask_confirm(t("Отправить ошибки браузера и скриншот в модель для авто-починки?"), default=True):
+                prompt = self.prompts.pack.CHECK_UI.format(url=url, title=title, errors=err_text)
+                resp = await self.ask_model(
+                    t("Vibi разбирает ошибки браузера…"),
                     prompt=prompt,
                     system_instruction=self.prompts.system_patcher(self.scope_partial),
                     attachment_path=screenshot_path,
                 )
                 await self._apply_and_auto_heal(resp)
         else:
-            console.print(f"[bold green]✅ Страница '{title}' открылась чисто, ошибок в консоли браузера нет![/bold green]")
+            self.mood = "happy"
+            console.print(ui.ok(t("Страница '{title}' открылась чисто, ошибок в консоли браузера нет!", title=title)))
             if screenshot_path:
-                console.print(f"[dim]Скриншот сохранен в: {screenshot_path.name}[/dim]")
+                console.print(ui.dim(t("Скриншот сохранен в: {name}", name=screenshot_path.name)))
 
     async def emit_models(self):
         """Список моделей для IDE (событие models). Для AI Studio — каталог ID, для Gemini/Claude — меню на странице."""
@@ -507,81 +479,79 @@ class VibeOrchestrator:
                     return
                 entries, current, levels = await self.bridge.list_models()
                 if not entries:
-                    console.print("[red]Не удалось получить список моделей (переключатель не найден на странице).[/red]")
+                    console.print(ui.err(t("Не удалось получить список моделей (переключатель не найден на странице).")))
                     return
                 models = [e for e in entries if e.get("kind", "model") == "model"]
                 self.model_names = [e["name"] for e in models]
-                table = Table(title=f"Модели {self.title} (из интерфейса)", show_lines=False)
-                table.add_column("#", style="cyan")
-                table.add_column("Название", style="bold")
-                table.add_column("Описание", style="dim")
-                table.add_column("", style="green")
+                table = ui.new_table(t("Модели {title} (из интерфейса)", title=self.title))
+                table.add_column("#", style=ui.BRAND2)
+                table.add_column(t("Название"), style="bold")
+                table.add_column(t("Описание"), style="dim")
+                table.add_column("", style=ui.OK)
                 for i, e in enumerate(models, 1):
                     desc = e["full"][len(e["name"]):].lstrip(" |")
                     chosen = self.config.model and self.bridge._norm(self.config.model) == self.bridge._norm(e["name"])
-                    table.add_row(str(i), e["name"], desc, "◀ выбрана" if chosen else ("✓" if e["checked"] else ""))
+                    table.add_row(str(i), e["name"], desc, t("◀ выбрана") if chosen else (ui.icon("ok") if e["checked"] else ""))
                 console.print(table)
                 locked = [e["name"] for e in entries if e.get("kind") == "locked"]
                 if locked:
-                    console.print(f"[dim]Недоступны в вашем плане: {', '.join(locked)}[/dim]")
+                    console.print(ui.dim(t("Недоступны в вашем плане: {names}", names=", ".join(locked))))
                 if current:
-                    console.print(f"[dim]Сейчас в интерфейсе: {current}[/dim]")
+                    console.print(ui.dim(t("Сейчас в интерфейсе: {name}", name=current)))
                 if levels:
-                    console.print(f"Уровни рассуждений: [bold]{', '.join(levels)}[/bold]  [dim](текущий: {self.config.reasoning or 'по умолчанию'})[/dim]")
-                console.print("[dim]Примеры: `/model 2`, `/model 3.1 pro high`, `/model 4 argon medium`; сброс: `/model default`[/dim]")
+                    console.print(t("Уровни рассуждений: [bold]{levels}[/bold]  [dim](текущий: {cur})[/dim]", levels=", ".join(levels), cur=self.config.reasoning or t("по умолчанию")))
+                console.print(ui.dim(t("Примеры: `/model 2`, `/model 3.1 pro high`, `/model 4 argon medium`; сброс: `/model default`")))
                 return
             if arg.lower() in ("default", "auto", "reset"):
                 self.config.model = ""
                 self.config.reasoning = ""
                 self.config.save_project_config()
-                console.print("[green]✓ Выбор модели и рассуждений сброшен.[/green]")
+                console.print(ui.ok(t("Выбор модели и рассуждений сброшен.")))
                 return
             wanted, level = parse_model_args(arg)
             ok, info, lvl_res = await self.bridge.choose_model(wanted, level)
             if not ok:
-                console.print(f"[red]{info}[/red]")
+                console.print(ui.err(info))
                 return
             self.config.model = info  # храним название, а не номер: номера в меню меняются
-            msg = f"[green]✓ Модель: {info}"
+            msg = ui.ok(t("Модель: {name}", name=info))
             if level:
                 if lvl_res and lvl_res[0]:
                     self.config.reasoning = level
-                    msg += f" · рассуждения: {lvl_res[1]}"
+                    msg += t(" · рассуждения: {level}", level=lvl_res[1])
                 else:
-                    msg += f"[/green]\n[yellow]⚠ Уровень '{level}' не установлен: {lvl_res[1] if lvl_res else '—'}[/yellow][green]"
+                    msg += "\n" + ui.warn(t("Уровень '{level}' не установлен: {why}", level=level, why=lvl_res[1] if lvl_res else "—"))
             self.config.save_project_config()
             self._new_session()
-            console.print(msg + ". Следующий запрос откроет новый чат с контекстом проекта.[/green]")
+            console.print(msg + t(". Следующий запрос откроет новый чат с контекстом проекта."))
         except Exception as e:
-            console.print(f"[bold red]Ошибка /model:[/bold red] {e}")
+            console.print(ui.err(t("Ошибка /model: {e}", e=e)))
 
     async def handle_reasoning_command(self, arg: str):
         try:
             if not arg:
-                cur = self.config.reasoning or "по умолчанию"
+                cur = self.config.reasoning or t("по умолчанию")
                 console.print(
-                    f"Рассуждения ({self.title}): [bold]{cur}[/bold]\n"
-                    "Уровни: `/reasoning low|medium|high|off` — подбираются по пунктам меню модели "
-                    "(Fast/Thinking/Pro и т.п.; у Claude — переключатель Extended thinking). "
-                    "Точное название пункта тоже подходит: `/reasoning extended`. Сброс: `/reasoning default`.\n"
-                    "[dim]Посмотреть доступные пункты: `/model`.[/dim]"
+                    t("Рассуждения ({title}): [bold]{cur}[/bold]", title=self.title, cur=cur) + "\n"
+                    + t("Уровни: `/reasoning low|medium|high|off` — подбираются по пунктам меню модели (Fast/Thinking/Pro и т.п.; у Claude — переключатель Extended thinking). Точное название пункта тоже подходит: `/reasoning extended`. Сброс: `/reasoning default`.") + "\n"
+                    + ui.dim(t("Посмотреть доступные пункты: `/model`."))
                 )
                 return
             if arg.lower() in ("default", "reset"):
                 self.config.reasoning = ""
                 self.config.save_project_config()
-                console.print("[green]✓ Уровень рассуждений сброшен.[/green]")
+                console.print(ui.ok(t("Уровень рассуждений сброшен.")))
                 return
             ok, info = await self.bridge.choose_reasoning(arg)
             if ok:
                 self.config.reasoning = arg
                 self.config.save_project_config()
                 self._new_session()
-                console.print(f"[green]✓ Рассуждения: {arg} → пункт «{info}». Применится в новом чате.[/green]")
+                console.print(ui.ok(t("Рассуждения: {arg} → пункт «{item}». Применится в новом чате.", arg=arg, item=info)))
             else:
-                console.print(f"[red]{info}[/red]")
+                console.print(ui.err(info))
         except Exception as e:
-            console.print(f"[bold red]Ошибка /reasoning:[/bold red] {e}")
+            console.print(ui.err(t("Ошибка /reasoning: {e}", e=e)))
 
     def _new_session(self):
         self.bridge.reset_conversation()
@@ -593,9 +563,9 @@ class VibeOrchestrator:
     def handle_provider_command(self, arg: str):
         arg = arg.lower()
         if arg not in PROVIDERS:
-            lines = [f"Сейчас: [bold]{self.title}[/bold]. Использование: `/provider gemini`, `/provider claude` или `/provider aistudio`"]
+            lines = [t("Сейчас: [bold]{title}[/bold]. Использование: `/provider gemini`, `/provider claude` или `/provider aistudio`", title=self.title)]
             for k, pv in PROVIDERS.items():
-                lines.append(f"  {k}: {pv.url}  (Chrome: {self.config.cdp_urls[k]})")
+                lines.append(f"  [{ui.BRAND2}]{k}[/]: {pv.url}  (Chrome: {self.config.cdp_urls[k]})")
             console.print("\n".join(lines))
             return
         self.config.provider = arg
@@ -603,24 +573,36 @@ class VibeOrchestrator:
         self._new_session()
         emit("setting", key="provider", value=arg)
         pv = PROVIDERS[arg]
+        default = t("по умолчанию")
         console.print(
-            f"[green]✓ Провайдер: {pv.title}[/green] (модель: {self.config.model or 'по умолчанию'}, "
-            f"рассуждения: {self.config.reasoning or 'по умолчанию'}).\n"
-            f"[dim]Нужен запущенный Chrome с отладкой на {self.config.cdp_url} и выполненный вход на {pv.url} "
-            f"(scripts/start_chrome_{arg}_*).[/dim]"
+            ui.ok(t("Провайдер: {title} (модель: {model}, рассуждения: {reasoning}).", title=pv.title, model=self.config.model or default, reasoning=self.config.reasoning or default)) + "\n"
+            + ui.dim(t("Нужен запущенный Chrome с отладкой на {cdp} и выполненный вход на {url} (scripts/start_chrome_{key}_*).", cdp=self.config.cdp_url, url=pv.url, key=arg))
         )
 
     def init_project_files(self):
         self.config.save_project_config()
         if not self.config.vibe_rules_file.exists():
             default_rules = (
-                "# Правила и конвенции проекта (VIBE.md)\n\n"
-                "- Пиши чистый, модульный и самодокументируемый код.\n"
-                "- Сохраняй существующий стиль именования и структуру папок.\n"
-                "- Не удаляй существующую бизнес-логику без явного запроса.\n"
+                t("# Правила и конвенции проекта (VIBE.md)") + "\n\n"
+                + t("- Пиши чистый, модульный и самодокументируемый код.") + "\n"
+                + t("- Сохраняй существующий стиль именования и структуру папок.") + "\n"
+                + t("- Не удаляй существующую бизнес-логику без явного запроса.") + "\n"
             )
             self.config.vibe_rules_file.write_text(default_rules, encoding="utf-8")
-        console.print("[green]✓ Созданы файлы конфигурации `.vibe.json` и `VIBE.md`.[/green]")
+        console.print(ui.ok(t("Созданы файлы конфигурации `.vibe.json` и `VIBE.md`.")))
+
+    def handle_lang_command(self, arg: str):
+        """/lang en|ru|auto — язык интерфейса CLI, IDE-событий и промптов."""
+        a = arg.strip().lower()
+        if a not in LANGS + ("auto",):
+            names = ", ".join(f"[{ui.BRAND2}]{k}[/] — {v}" for k, v in LANG_TITLES.items())
+            say(t("Язык: [bold]{cur}[/bold]. Варианты: {names}, [{c}]auto[/] — по языку системы. `/lang en`", cur=LANG_TITLES[get_lang()], names=names, c=ui.BRAND2))
+            return
+        self.config.language = a
+        cur = set_lang(a)
+        self.config.save_project_config()
+        emit("setting", key="language", value=cur)
+        say(ui.ok(t("Язык интерфейса: {name}", name=LANG_TITLES[cur])), "ok")
 
     async def read_input(self) -> str:
         if IDE:
@@ -632,8 +614,8 @@ class VibeOrchestrator:
         if self.session is not None:
             from prompt_toolkit.formatted_text import HTML
 
-            return (await self.session.prompt_async(HTML("\n<ansibrightmagenta><b>vibe&gt;</b></ansibrightmagenta> "))).strip()
-        return Prompt.ask("\n[bold bright_magenta]vibe>[/bold bright_magenta]").strip()
+            return (await self.session.prompt_async(HTML(ui.prompt_html(self.mood)))).strip()
+        return console.input(ui.prompt_markup(self.mood) + " ").strip()
 
     async def run_command(self, name: str, arg: str) -> bool:
         """Выполняет команду. Возвращает False, если нужно выйти."""
@@ -643,14 +625,16 @@ class VibeOrchestrator:
             self.show_context_stats()
         elif name == "undo":
             ok, msg = self.patcher.undo_last_snapshot()
-            console.print(f"[{'green' if ok else 'red'}]{msg}[/{'green' if ok else 'red'}]")
+            console.print(ui.ok(msg) if ok else ui.err(msg))
         elif name == "init":
             self.init_project_files()
         elif name == "reset":
             self._new_session()
-            console.print("[green]✓ Сессия чата сброшена. Следующий запрос создаст новый диалог с актуальным контекстом.[/green]")
+            console.print(ui.ok(t("Сессия чата сброшена. Следующий запрос создаст новый диалог с актуальным контекстом.")))
         elif name == "help":
-            console.print(HELP_TEXT)
+            show_help()
+        elif name == "lang":
+            self.handle_lang_command(arg)
         elif name == "provider":
             self.handle_provider_command(arg)
         elif name == "reasoning":
@@ -663,34 +647,34 @@ class VibeOrchestrator:
                 self.config.transport = arg
                 self.config.save_project_config()
                 emit("setting", key="transport", value=arg)
-                console.print(f"[green]✓ Способ передачи контекста: {arg}[/green]")
+                console.print(ui.ok(t("Способ передачи контекста: {mode}", mode=arg)))
             else:
-                console.print(f"Сейчас: [bold]{self.config.transport}[/bold]. Варианты:\n" + "\n".join(f"  [cyan]{k}[/cyan] — {TRANSPORT_INFO[k][1]}" for k in VALID_TRANSPORTS))
+                console.print(t("Сейчас: [bold]{cur}[/bold]. Варианты:", cur=self.config.transport) + "\n" + "\n".join(f"  [{ui.BRAND2}]{k}[/] — {transport_info(k)[1]}" for k in VALID_TRANSPORTS))
         elif name == "attach":
             if not arg:
-                say("Использование: /attach <путь к zip или изображению>")
+                say(t("Использование: /attach <путь к zip или изображению>"))
             else:
                 self.add_attachment(arg)
         elif name == "attach_clear":
             self.attachments.clear()
             self._emit_attachments()
-            say("[green]✓ Вложения убраны[/green]", "ok")
+            say(ui.ok(t("Вложения убраны")), "ok")
         elif name == "yolo":
             a = arg.lower()
             if a in ("on", "off", "вкл", "выкл", "1", "0"):
                 self.yolo_mode = a in ("on", "вкл", "1")
                 emit("setting", key="yolo", value=self.yolo_mode)
-                say(f"[green]✓ Без подтверждений: {'включено' if self.yolo_mode else 'выключено'}[/green]", "ok")
+                say(ui.ok(t("Без подтверждений: {state}", state=t("включено") if self.yolo_mode else t("выключено"))), "ok")
             else:
-                say(f"Без подтверждений: [bold]{'вкл' if self.yolo_mode else 'выкл'}[/bold]. /yolo on|off")
+                say(t("Без подтверждений: [bold]{state}[/bold]. /yolo on|off", state=t("вкл") if self.yolo_mode else t("выкл")))
         elif name == "verify_cmd":
             self.config.verify_cmd = arg
             self.config.save_project_config()
-            console.print(f"[green]✓ Команда авто-проверки установлена: `{arg}`[/green]")
+            console.print(ui.ok(t("Команда авто-проверки установлена: `{cmd}`", cmd=arg)))
         elif name == "fix":
             cmd = arg or self.config.verify_cmd
             if not cmd:
-                console.print("[red]Укажите команду для проверки, например: `/fix npm run build` или `/fix pytest`[/red]")
+                console.print(ui.err(t("Укажите команду для проверки, например: `/fix npm run build` или `/fix pytest`")))
             else:
                 await self.run_auto_healing_loop(cmd)
         elif name == "check_ui":
@@ -702,10 +686,10 @@ class VibeOrchestrator:
                 self.config.save_project_config()
                 self._new_session()
                 emit("setting", key="auto_context", value=self.config.auto_context)
-                say(f"[green]✓ Автоподбор контекста: {'включён' if self.config.auto_context else 'выключен'}. Применится в новом чате.[/green]", "ok")
+                say(ui.ok(t("Автоподбор контекста: {state}. Применится в новом чате.", state=t("включён") if self.config.auto_context else t("выключен"))), "ok")
             else:
-                say(f"Автоподбор контекста: [bold]{'вкл' if self.config.auto_context else 'выкл'}[/bold] "
-                    f"(до {self.config.auto_context_max_files} файлов, ~{self.config.auto_context_budget:,} токенов). `/autocontext on|off`")
+                say(t("Автоподбор контекста: [bold]{state}[/bold] (до {files} файлов, ~{budget} токенов). `/autocontext on|off`",
+                      state=t("вкл") if self.config.auto_context else t("выкл"), files=self.config.auto_context_max_files, budget=f"{self.config.auto_context_budget:,}"))
         elif name == "promptstyle":
             a = arg.lower()
             if a in VALID_STYLES:
@@ -713,9 +697,9 @@ class VibeOrchestrator:
                 self.prompts.set_style(a)
                 self.config.save_project_config()
                 emit("setting", key="prompt_style", value=a)
-                say(f"[green]✓ Стиль промпта: {STYLE_TITLES[a]}[/green]", "ok")
+                say(ui.ok(t("Стиль промпта: {name}", name=style_title(a))), "ok")
             else:
-                say("Стили: " + ", ".join(VALID_STYLES) + f". Сейчас: [bold]{self.config.prompt_style}[/bold]")
+                say(t("Стили: {styles}. Сейчас: [bold]{cur}[/bold]", styles=", ".join(VALID_STYLES), cur=self.config.prompt_style))
         elif name == "autocontext_set":
             try:
                 mf, _, bud = arg.partition(" ")
@@ -725,14 +709,14 @@ class VibeOrchestrator:
                 self.config.save_project_config()
                 emit("setting", key="auto_context_limits", value=[self.config.auto_context_max_files, self.config.auto_context_budget])
             except ValueError:
-                say("[red]Формат: /autocontext_set <макс. файлов> [токенов][/red]", "err")
+                say(ui.err(t("Формат: /autocontext_set <макс. файлов> \\[токенов]")), "err")
         elif name == "continue":
             await self.continue_stopped()
         elif name == "list_models":
             await self.emit_models()
         elif name == "plan":
             if not arg:
-                console.print("[red]Укажите задачу: `/plan <что сделать>`[/red]")
+                console.print(ui.err(t("Укажите задачу: `/plan <что сделать>`")))
             else:
                 await self.execute_vibe_task(arg, two_phase_plan=True)
         return True
@@ -747,7 +731,7 @@ class VibeOrchestrator:
             try:
                 user_input = await self.read_input()
             except (KeyboardInterrupt, EOFError):
-                console.print("\n[dim]Выход из Vibe CLI.[/dim]")
+                console.print("\n" + ui.vibi_says(t("До встречи!"), "sleep"))
                 break
 
             if not user_input:
@@ -759,11 +743,11 @@ class VibeOrchestrator:
 
             # команды никогда не уходят в модель как задача
             if kind == "ambiguous":
-                console.print(f"[yellow]Команда неоднозначна: {', '.join('/' + h for h in hints)}[/yellow]")
+                console.print(ui.warn(t("Команда неоднозначна: {names}", names=", ".join("/" + h for h in hints))))
                 continue
             if kind == "unknown":
-                tip = f" Возможно: {', '.join('/' + h for h in hints)}." if hints else ""
-                console.print(f"[red]Неизвестная команда.[/red]{tip} Список: /help")
+                tip = " " + t("Возможно: {names}.", names=", ".join("/" + h for h in hints)) if hints else ""
+                console.print(ui.err(t("Неизвестная команда.")) + f"{tip} " + t("Список: /help"))
                 continue
 
             try:
@@ -771,30 +755,47 @@ class VibeOrchestrator:
                     if not await self.run_command(name, arg):
                         break
                 else:
+                    self.mood = "idle"
                     await self.execute_vibe_task(arg, two_phase_plan=False)
+                    if self.mood == "idle":
+                        self.mood = "happy"
             except GenerationStopped as e:
                 self.on_stopped(e.partial)
             except Exception as e:
+                self.mood = "error"
                 emit("error", text=str(e))
-                say(f"[bold red]Ошибка выполнения:[/bold red] {e}", "err")
+                say(ui.err(t("Ошибка выполнения:") + f" {e}"), "err")
+
+
+def _pre_language() -> None:
+    """--lang нужен до разбора остальных аргументов, чтобы --help уже был на нужном языке."""
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--lang")
+    known, _ = pre.parse_known_args()
+    set_lang(known.lang)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Vibe CLI — локальный вайбкодер на вашей подписке (Gemini / Claude / AI Studio)")
-    parser.add_argument("prompt", nargs="*", help="Одноразовая задача (если не указана — запускается интерактивный режим)")
-    parser.add_argument("--dir", "-d", default=".", help="Путь к папке проекта (по умолчанию текущая)")
-    parser.add_argument("--plan", "-p", action="store_true", help="Запустить в двухфазном режиме (Сначала План -> Затем Код)")
-    parser.add_argument("--yolo", "-y", action="store_true", help="Автоматически подтверждать все планы и команды без вопросов")
-    parser.add_argument("--provider", choices=list(PROVIDERS), help="ИИ-провайдер: gemini, claude или aistudio")
-    parser.add_argument("--reasoning", help="Уровень рассуждений: low|medium|high|off или название пункта")
-    parser.add_argument("--model", help="Модель (номер или часть названия, например: pro)")
-    parser.add_argument("--transport", choices=list(VALID_TRANSPORTS), help="Способ передачи файлов в чат")
-    parser.add_argument("--auto-context", choices=["on", "off"], help="Автоподбор контекста по описанию задачи")
-    parser.add_argument("--prompt-style", choices=list(VALID_STYLES), help="Стиль промпта, вставляемого в чат")
-    parser.add_argument("--list-models-json", action="store_true", help="Вывести список моделей событием models и выйти (для IDE)")
+    _pre_language()
+    parser = argparse.ArgumentParser(description=t("Vibe CLI — локальный вайбкодер на вашей подписке (Gemini / Claude / AI Studio)"))
+    parser.add_argument("prompt", nargs="*", help=t("Одноразовая задача (если не указана — запускается интерактивный режим)"))
+    parser.add_argument("--dir", "-d", default=".", help=t("Путь к папке проекта (по умолчанию текущая)"))
+    parser.add_argument("--plan", "-p", action="store_true", help=t("Запустить в двухфазном режиме (Сначала План -> Затем Код)"))
+    parser.add_argument("--yolo", "-y", action="store_true", help=t("Автоматически подтверждать все планы и команды без вопросов"))
+    parser.add_argument("--provider", choices=list(PROVIDERS), help=t("ИИ-провайдер: gemini, claude или aistudio"))
+    parser.add_argument("--reasoning", help=t("Уровень рассуждений: low|medium|high|off или название пункта"))
+    parser.add_argument("--model", help=t("Модель (номер или часть названия, например: pro)"))
+    parser.add_argument("--transport", choices=list(VALID_TRANSPORTS), help=t("Способ передачи файлов в чат"))
+    parser.add_argument("--auto-context", choices=["on", "off"], help=t("Автоподбор контекста по описанию задачи"))
+    parser.add_argument("--prompt-style", choices=list(VALID_STYLES), help=t("Стиль промпта, вставляемого в чат"))
+    parser.add_argument("--lang", choices=list(LANGS) + ["auto"], help=t("Язык интерфейса и промптов: en, ru или auto (по языку системы)"))
+    parser.add_argument("--list-models-json", action="store_true", help=t("Вывести список моделей событием models и выйти (для IDE)"))
     args = parser.parse_args()
 
     orchestrator = VibeOrchestrator(Path(args.dir), yolo_mode=args.yolo)
+    if args.lang:
+        orchestrator.config.language = args.lang
+        set_lang(args.lang)
     if args.provider:
         orchestrator.config.provider = args.provider
     if args.reasoning:
@@ -815,6 +816,8 @@ def main():
 
     if args.prompt:
         task_text = " ".join(args.prompt)
+        if not IDE:
+            console.print(ui.vibi_says(t("Беру задачу в работу ({title})…", title=orchestrator.title), "work"))
         try:
             asyncio.run(orchestrator.execute_vibe_task(task_text, two_phase_plan=args.plan))
         except GenerationStopped as e:

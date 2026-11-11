@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from .context_packer import ContextPacker
+from .i18n import t
 
 SMALL_PROJECT_TOKENS = 15_000     # ниже этого порога подбор не нужен — отправляем всё
 DEFAULT_MAX_FILES = 24
@@ -210,9 +211,9 @@ def build_query(task: str, extra: Optional[Dict[str, List[str]]] = None) -> Dict
     if extra:
         table.update({str(k).lower(): list(v) for k, v in extra.items()})
 
-    def add(t: str, w: float):
-        if t and (t not in terms or terms[t] < w):
-            terms[t] = w
+    def add(term: str, w: float):
+        if term and (term not in terms or terms[term] < w):
+            terms[term] = w
 
     for m in _WORD.finditer(task):
         raw = m.group(0)
@@ -368,11 +369,11 @@ class ContextSelector:
                             parts.pop()
                     elif seg and seg != ".":
                         parts.append(seg)
-                t = "/".join(parts)
-                out.add(t)
+                mod = "/".join(parts)
+                out.add(mod)
                 for ext in (".js", ".jsx", ".ts", ".tsx", ".mjs", ".json", ".vue"):
-                    out.add(t + ext)
-                    out.add(t + "/index" + ext)
+                    out.add(mod + ext)
+                    out.add(mod + "/index" + ext)
         return out
 
     # ---------------------------------------------------------------- подбор
@@ -385,19 +386,19 @@ class ContextSelector:
         if total_tokens <= SMALL_PROJECT_TOKENS:
             return Selection(
                 "all",
-                [Picked(d.rel, d.path, 0.0, d.tokens, "небольшой проект — отправляется целиком") for d in docs],
+                [Picked(d.rel, d.path, 0.0, d.tokens, t("небольшой проект — отправляется целиком")) for d in docs],
                 len(docs), total_tokens, total_tokens,
-                note="Проект небольшой: подбор не нужен, отправляются все файлы.",
+                note=t("Проект небольшой: подбор не нужен, отправляются все файлы."),
             )
 
         terms = build_query(task, self.synonyms)
         n = len(docs)
         df: Counter = Counter()
         for d in docs:
-            for t in terms:
-                if d.terms.get(t):
-                    df[t] += 1
-        idf = {t: math.log(1 + n / (df[t] + 0.5)) for t in terms}
+            for w_ in terms:
+                if d.terms.get(w_):
+                    df[w_] += 1
+        idf = {w_: math.log(1 + n / (df[w_] + 0.5)) for w_ in terms}
 
         task_low = task.lower().replace("\\", "/")
         scored: List[Picked] = []
@@ -414,28 +415,28 @@ class ContextSelector:
                 score += 100.0
                 mentioned = True
             lenf = 1.0 / (1.0 + math.log(1 + d.length / 4000.0))
-            for t, w in terms.items():
-                if t in stem_tokens:
+            for w_, w in terms.items():
+                if w_ in stem_tokens:
                     score += 8.0 * w
-                    why_name.append(t)
-                elif t in dir_tokens:
+                    why_name.append(w_)
+                elif w_ in dir_tokens:
                     score += 3.0 * w
-                    why_name.append(t)
-                tf = d.terms.get(t, 0)
+                    why_name.append(w_)
+                tf = d.terms.get(w_, 0)
                 if tf:
-                    score += w * (1.0 + math.log(tf)) * idf[t] * lenf * 2.0
-                    why_code.append(t)
-                if t in d.defs:
+                    score += w * (1.0 + math.log(tf)) * idf[w_] * lenf * 2.0
+                    why_code.append(w_)
+                if w_ in d.defs:
                     score += 3.0 * w
             if score <= 0:
                 continue
             reasons = []
             if mentioned:
-                reasons.append("назван в задаче")
+                reasons.append(t("назван в задаче"))
             if why_name:
-                reasons.append("имя/путь: " + ", ".join(dict.fromkeys(why_name)))
+                reasons.append(t("имя/путь: ") + ", ".join(dict.fromkeys(why_name)))
             if why_code:
-                reasons.append("в коде: " + ", ".join(list(dict.fromkeys(why_code))[:5]))
+                reasons.append(t("в коде: ") + ", ".join(list(dict.fromkeys(why_code))[:5]))
             scored.append(Picked(d.rel, d.path, score, d.tokens, "; ".join(reasons)))
 
         scored.sort(key=lambda p: -p.score)
@@ -447,7 +448,7 @@ class ContextSelector:
 
         if not scored or scored[0].score < MIN_SCORE:
             fallback = True
-            note = "В описании не нашлось опорных слов — отправлены ключевые файлы проекта."
+            note = t("В описании не нашлось опорных слов — отправлены ключевые файлы проекта.")
             picked, used = self._key_files(docs)
         else:
             threshold = max(MIN_SCORE, scored[0].score * 0.12)
@@ -473,12 +474,12 @@ class ContextSelector:
                         continue
                     if len(picked) >= self.max_files or used + d2.tokens > self.token_budget:
                         continue
-                    picked.append(Picked(d2.rel, d2.path, 1.0, d2.tokens, f"импортируется из {head.rel}"))
+                    picked.append(Picked(d2.rel, d2.path, 1.0, d2.tokens, t("импортируется из {name}", name=head.rel)))
                     have.add(d2.rel)
                     used += d2.tokens
 
         if used >= total_tokens * 0.85:
-            note = note or "Подобранные файлы покрывают почти весь проект."
+            note = note or t("Подобранные файлы покрывают почти весь проект.")
         return Selection("auto", picked, len(docs), total_tokens, used, fallback, note)
 
     def _key_files(self, docs: List[_Doc]) -> Tuple[List[Picked], int]:
@@ -496,7 +497,7 @@ class ContextSelector:
         for d in ranked:
             if len(picked) >= self.max_files or used + d.tokens > cap:
                 continue
-            picked.append(Picked(d.rel, d.path, 0.5, d.tokens, "ключевой файл проекта"))
+            picked.append(Picked(d.rel, d.path, 0.5, d.tokens, t("ключевой файл проекта")))
             used += d.tokens
         return picked, used
 
