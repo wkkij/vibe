@@ -289,6 +289,7 @@ ipcMain.handle('session-start', async (_e, o) => {
       PYTHONUTF8: '1',
       VIBE_IDE: '1',
       VIBE_LANG: LANG,
+      VIBE_HUMAN: o.human ? 'true' : 'false',
       VIBE_RESPONSE_TIMEOUT: String(minutes * 60),
       COLUMNS: '110',
       TERM: 'dumb',

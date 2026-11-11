@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const el = MD.el;
   const LS_KEY = 'vibeide:v2';
-  const VERSION = '0.01.2';
+  const VERSION = '0.01.3';
 
   /* ================= данные ================= */
 
@@ -113,11 +113,12 @@
 
   /* ================= состояние ================= */
 
+  const vibis = [];
   const S = {
     project: null, provider: 'gemini',
     models: { gemini: '', claude: '', aistudio: '' }, reasonings: { gemini: '', claude: '', aistudio: '' },
     theme: 'graphite', accent: '', density: 'standard', fontSize: 14, radius: 12, chatWidth: 860, fx: true, motion: true, inspector: true,
-    autoChrome: true, yolo: false, transport: 'auto', attach: [], plan: false, autoContext: false, maxFiles: 24, budget: 30000, promptStyle: 'auto',
+    autoChrome: true, yolo: false, transport: 'auto', inputMode: 'cdp', attach: [], plan: false, autoContext: false, maxFiles: 24, budget: 30000, promptStyle: 'auto',
     showThink: true, livePreview: true, notify: true, timeoutMin: 60, recents: [], liveModels: {}, autoBat: 'sel', startScripts: '', modelsRefreshMin: 60, lastTry: {}, refreshing: false,
     // служебное (не сохраняется)
     running: false, starting: false, mode: 'off', outbox: [], turn: null, stick: true, vibeRoot: null, python: null,
@@ -126,7 +127,7 @@
     modelPop: { open: false, provider: 'gemini', q: '' }, logCount: 0
   };
   const PERSIST = ['project', 'provider', 'models', 'reasonings', 'theme', 'accent', 'density', 'fontSize', 'radius', 'chatWidth', 'fx', 'motion', 'inspector',
-    'autoChrome', 'yolo', 'plan', 'autoContext', 'maxFiles', 'budget', 'promptStyle', 'transport', 'autoBat', 'startScripts', 'modelsRefreshMin', 'showThink', 'livePreview', 'notify', 'timeoutMin', 'recents'];
+    'autoChrome', 'yolo', 'plan', 'autoContext', 'maxFiles', 'budget', 'promptStyle', 'transport', 'inputMode', 'autoBat', 'startScripts', 'modelsRefreshMin', 'showThink', 'livePreview', 'notify', 'timeoutMin', 'recents'];
 
   function loadSettings() {
     try {
@@ -189,6 +190,7 @@
     root.setAttribute('data-theme', resolvedTheme());
     root.setAttribute('data-density', S.density);
     root.setAttribute('data-motion', S.motion ? 'on' : 'off');
+    for (const v of vibis) v.animate(S.motion);
     root.style.setProperty('--fs', S.fontSize + 'px');
     root.style.setProperty('--r', S.radius + 'px');
     root.style.setProperty('--chat-w', S.chatWidth + 'px');
@@ -273,8 +275,19 @@
     return T;
   }
 
+  function vibiMood(m) { for (const v of vibis) v.set(m); }
+  function initVibi() {
+    try { const pet = VibiPet({ composer: document.querySelector('.composer'), send: $('send'), feed: $('feed'), enabled: () => S.motion, target: () => (S.turn && !S.turn.done ? S.turn.box : null) }); vibis.push(pet.vibi); } catch (_) { /* без кота */ }
+    for (const [id, px] of [['heroVibi', 7]]) {
+      const c = $(id); if (!c) continue;
+      const v = Vibi(c, px); v.animate(S.motion); vibis.push(v);
+      if (id === 'heroVibi') c.addEventListener('click', () => { v.set('wink'); setTimeout(() => v.set(S.mode === 'busy' ? 'work' : 'idle'), 900); });
+    }
+  }
+
   function setPhase(ph) {
     S.phase = ph;
+    vibiMood(window.VIBI_MOOD_BY_PHASE[ph] || 'work');
     updateStatusBar();
     renderSession();
     const T = S.turn;
@@ -303,6 +316,8 @@
     if (!T || T.done) return;
     T.done = true;
     const o = opts || {};
+    vibiMood(o.failed ? 'error' : o.stopped ? 'sleep' : 'happy');
+    setTimeout(() => { if (S.mode !== 'busy') vibiMood('idle'); }, 3500);
     T.timer.textContent = fmtTime(Date.now() - T.start);
     T.spin.remove();
     T.status.querySelector('.think') && T.status.querySelector('.think').remove();
@@ -575,12 +590,13 @@
     S.starting = true; renderSession();
     addSys(tr('Запуск Vibe CLI…'));
     const r = await api.sessionStart({
-      project: S.project, provider: S.provider, model: curModel().trim(), reasoning: S.reasonings[S.provider] || '', yolo: S.yolo, transport: S.transport,
+      project: S.project, provider: S.provider, model: curModel().trim(), reasoning: S.reasonings[S.provider] || '', yolo: S.yolo, transport: S.transport, human: S.inputMode === 'human',
       autoChrome: S.autoChrome, timeoutMin: S.timeoutMin, autoContext: S.autoContext, promptStyle: S.promptStyle
     });
     S.starting = false;
     if (!r || !r.ok) { addSys((r && r.error) || tr('Не удалось запустить сессию'), 'err'); renderSession(); return false; }
     S.running = true; S.mode = 'booting';
+    api.sessionSend('/human ' + (S.inputMode === 'human' ? 'on' : 'off'));
     if (S.autoContext) { api.sessionSend('/autocontext_set ' + S.maxFiles + ' ' + S.budget); }
     renderSession();
     return true;
@@ -1167,6 +1183,10 @@
     const g4 = group(tr('Подключение'));
     g4.appendChild(srow(tr('Автозапуск Chrome при старте сессии'), tr('Если Chrome с отладкой не запущен — стартует батник'), toggleCtl('autoChrome')));
     g4.appendChild(srow(tr('Автозапуск батников при старте IDE'), tr('Сразу после открытия IDE запускается scripts/start_chrome_*.bat'), selectCtl('autoBat', [['off', tr('Выключен')], ['sel', tr('Chrome выбранного провайдера')], ['all', tr('Chrome Gemini и Claude')]])));
+    g4.appendChild(srow(tr('Способ подключения к чату'), S.inputMode === 'human'
+      ? tr('Humanize: курсор идёт по кривой, текст печатается с неровным ритмом, перед отправкой есть пауза. Сообщение занимает на несколько секунд дольше. Связь с Chrome по-прежнему CDP, но это не гарантия, что сервис не заметит автоматизацию')
+      : tr('CDP: быстрое управление страницей, как в Playwright (курсор прыгает в центр кнопки, текст вставляется целиком)'),
+      selectCtl('inputMode', [['cdp', tr('CDP (быстро)')], ['human', tr('Humanize (человекоподобно)')]], (v) => { silent('/human ' + (v === 'human' ? 'on' : 'off')); if (S.running) toast(tr('Применено к текущей сессии')); buildFeatures(); })));
     const ta = el('textarea'); ta.rows = 3; ta.placeholder = 'scripts/my.bat\nC:\\tools\\run.bat'; ta.value = S.startScripts || ''; ta.className = 'input';
     ta.addEventListener('change', () => { S.startScripts = ta.value; saveSettings(); });
     g4.appendChild(srow(tr('Свои скрипты при старте IDE'), tr('По одному пути в строке (.bat). Относительные пути — от папки Vibe'), ta, 'col'));
@@ -1209,7 +1229,7 @@
     const box = $('sAbout');
     box.textContent = '';
     const a = el('div', 'about');
-    const logo = document.querySelector('.brand .logo').cloneNode(true);
+    const logo = el('canvas', 'vibi-cv'); Vibi(logo, 8).animate(S.motion);
     a.append(logo, el('h2', null, 'Vibe IDE ' + VERSION), el('div', 'hint', tr('Оболочка для Vibe CLI: чат с ИИ по подписке (Gemini, Claude, Google AI Studio), подбор контекста, патчи и проверка сборки.')));
     box.appendChild(a);
   }
@@ -1328,6 +1348,7 @@
   async function init() {
     api.setLang(window.VIBE_LANG);
     loadSettings();
+    initVibi();
     fillIcons();
     applyTheme();
     bind();

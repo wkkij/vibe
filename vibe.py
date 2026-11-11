@@ -27,7 +27,7 @@ from core.runner import BrowserVerifier, TerminalRunner
 
 console = Console()
 IDE = ide_mode()  # Vibe IDE: вместо рамок и таблиц CLI шлёт события (core/events.py), интерфейс рисует IDE
-VERSION = "0.01.2"
+VERSION = "0.01.3"
 
 
 def say(text: str, level: str = "info") -> None:

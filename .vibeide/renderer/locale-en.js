@@ -352,7 +352,13 @@
   "язык интерфейса": "interface language",
   "Язык сменится после завершения сессии": "The language will change when the session ends",
   "Язык интерфейса IDE и сообщений Vibe CLI. Применяется сразу.": "Language of the IDE interface and of the Vibe CLI messages. Applies at once.",
-  "Русский": "Русский"
+    "Способ подключения к чату": "Chat input method",
+  "Humanize: курсор идёт по кривой, текст печатается с неровным ритмом, перед отправкой есть пауза. Сообщение занимает на несколько секунд дольше. Связь с Chrome по-прежнему CDP, но это не гарантия, что сервис не заметит автоматизацию": "Humanize: the cursor travels along a curved path, text is typed with an irregular rhythm, and there is a pause before sending. A message takes a few seconds longer. The connection to Chrome is still CDP, and this does not guarantee that a service won't notice automation",
+  "CDP: быстрое управление страницей, как в Playwright (курсор прыгает в центр кнопки, текст вставляется целиком)": "CDP: fast page control like Playwright (the cursor jumps to the centre of a button, text is pasted at once)",
+  "CDP (быстро)": "CDP (fast)",
+  "Humanize (человекоподобно)": "Humanize (human-like)",
+  "Применено к текущей сессии": "Applied to the current session",
+"Русский": "Русский"
 };
   if (typeof module !== 'undefined' && module.exports) module.exports = EN;
   else root.VIBE_EN = EN;

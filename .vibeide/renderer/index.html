@@ -51,12 +51,7 @@
         <div class="chat-col">
           <div id="feed" class="feed">
             <div id="hero" class="hero">
-              <svg class="hero-logo" viewBox="0 0 64 64" aria-hidden="true">
-                <rect x="3" y="3" width="58" height="58" rx="18" fill="url(#lg)"/>
-                <path d="M10 41 Q16 29 21 36 T32 36 T43 36 Q48 30 54 41" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2.4" stroke-linecap="round"/>
-                <path d="M17 22 L32 46 L47 22" fill="none" stroke="#fff" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M50 7 L51.9 12.1 L57 14 L51.9 15.9 L50 21 L48.1 15.9 L43 14 L48.1 12.1Z" fill="#fff"/>
-              </svg>
+              <canvas id="heroVibi" class="hero-logo vibi-cv" aria-label="Vibi"></canvas>
               <h1>Опиши задачу — Vibe сделает остальное</h1>
               <p>IDE подберёт нужные файлы, отправит их в ИИ, применит патчи и проверит сборку. Ход работы модели виден в реальном времени, ответ можно остановить.</p>
               <div id="heroCards" class="hero-cards"></div>
@@ -165,6 +160,7 @@
   <script src="particles.js"></script>
   <script src="i18n.js"></script>
   <script src="markdown.js"></script>
+  <script src="vibi.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>

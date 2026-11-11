@@ -43,7 +43,7 @@ def ide_mode() -> bool:
     return bool(os.environ.get("VIBE_IDE"))
 
 
-def emit(kind: str, **data: Any) -> None:
+def emit(kind: str, /, **data: Any) -> None:
     """Отправляет событие в IDE. Вне режима IDE ничего не делает."""
     if not ide_mode():
         return
