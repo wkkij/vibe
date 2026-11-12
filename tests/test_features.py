@@ -104,3 +104,12 @@ def test_menu_entry_classification():
     assert c("Уровень усилий", "Уровень усилий | Низкий") == "option"
     assert c("Thinking level", "Thinking level | High") == "setting"
 
+    # Анализатор моделей: отличает реальное имя модели ("4 Argon") от её тегов ("code * analysis") и описания
+    analyze = B._analyze_model_parts
+    name, desc = analyze(["code * analysis", "4 Argon", "Best for coding and complex analysis"])
+    assert name == "4 Argon" and "code * analysis" in desc
+    name2, desc2 = analyze(["New", "3.1 Pro", "Для сложных задач"])
+    assert name2 == "3.1 Pro" and "New" in desc2 and "Для сложных задач" in desc2
+    name3, desc3 = analyze(["Sonnet 4.5", "Наиболее эффективен для повседневных задач"])
+    assert name3 == "Sonnet 4.5" and desc3 == "Наиболее эффективен для повседневных задач"
+

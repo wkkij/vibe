@@ -769,24 +769,86 @@
     pollStatus();
   }
 
+  /* ================= анализатор и модели ================= */
+
+  const BADGE_RE = /^(?:new|нов\w+|beta|бета|preview|experimental|эксперимент\w+|code(?:\s*[·*•|/,-]\s*\w+)+|coding(?:\s*[·*•|/,-]\s*\w+)*|(?:code|coding|analysis|reasoning|math|fast|research|vision|audio|multimodal|chat|general)(?:\s*[·*•+&,/|-]\s*(?:code|coding|analysis|reasoning|math|fast|research|vision|audio|multimodal|chat|general))+|(?:код|анализ|рассужд\w+|математ\w+|быстр\w+|исслед\w+)(?:\s*[·*•+&,/|-]\s*(?:код|анализ|рассужд\w+|математ\w+|быстр\w+|исслед\w+))+)$/i;
+  const MODEL_HINT_RE = /(\b\d+(?:\.\d+)?\b|gemini|claude|sonnet|opus|haiku|flash|pro|ultra|nano|argon|griffin|nebula|learnlm|gemma|imagen|veo|thinking|fast|deep\s*research|experimental|быстр\w+|рассужд\w+|эксперимент\w+)/i;
+  const DESC_HINT_RE = /\b(best for|good for|great for|ideal for|most capable|everyday|complex tasks|our most|подходит для|отлично подходит|лучше всего|наиболее эффектив\w+|для сложн\w+|для повседневн\w+|самая мощн\w+|быстрые ответы)\b/i;
+
+  function isBadgeOrDescPart(s) {
+    const st = String(s || '').trim();
+    if (!st) return true;
+    if (BADGE_RE.test(st) || DESC_HINT_RE.test(st)) return true;
+    if (/\s[·*•]\s/.test(st) && !/\d/.test(st) && st.split(/\s+/).length <= 5) return true;
+    return false;
+  }
+
+  function analyzeModelEntry(rawName, rawDesc) {
+    const allParts = [rawName, rawDesc]
+      .filter(Boolean)
+      .join(' | ')
+      .split(/\s*\|\s*/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!allParts.length) return { id: '', name: '', desc: '', badges: [] };
+    if (allParts.length === 1) return { id: allParts[0], name: allParts[0], desc: '', badges: [] };
+
+    let bestIdx = 0;
+    let bestScore = -1e9;
+    allParts.forEach((p, idx) => {
+      let score = idx === 0 ? 2 : 0;
+      if (isBadgeOrDescPart(p)) score -= 8;
+      if (MODEL_HINT_RE.test(p)) score += 6;
+      if (/\b\d+(?:\.\d+)?\s+[a-zа-я]{2,}/i.test(p)) score += 5;
+      if (p.length > 42 || p.split(/\s+/).length > 6) score -= 5;
+      if (score > bestScore) { bestScore = score; bestIdx = idx; }
+    });
+
+    const trueName = allParts[bestIdx];
+    const badges = [];
+    const descParts = [];
+    allParts.forEach((p, idx) => {
+      if (idx === bestIdx) return;
+      if (BADGE_RE.test(p) || (/\s[·*•]\s/.test(p) && p.length <= 32)) {
+        badges.push(p.replace(/\s*\*\s*/g, ' · '));
+      } else {
+        descParts.push(p);
+      }
+    });
+    return {
+      id: trueName,
+      name: trueName,
+      desc: descParts.join(' · '),
+      badges
+    };
+  }
+
+  function resolveDisplayModel(provider) {
+    const raw = S.models[provider] || '';
+    if (!raw) return '';
+    const entries = modelEntries(provider);
+    const hit = entries.find((m) => m.id.toLowerCase() === raw.toLowerCase() || m.rawName.toLowerCase() === raw.toLowerCase());
+    if (hit) return hit.name;
+    return analyzeModelEntry(raw, '').name || raw;
+  }
+
   function updateStatusBar() {
     const isHuman = S.inputMode === 'human';
     const online = S.cdp[S.provider] && S.cdp[S.provider].online;
-    $('chipText').textContent = provTitle() + ' · ' + (isHuman ? tr('в браузере') : (curModel() || tr('авто')));
+    const dispModel = resolveDisplayModel(S.provider);
+    $('chipText').textContent = provTitle() + ' · ' + (isHuman ? tr('в браузере') : (dispModel || tr('авто')));
     $('chipDot').className = 'dot ' + ((isHuman || online) ? 'on' : 'off');
-    $('cModelText').textContent = isHuman ? (provTitle() + ' · ' + tr('в браузере')) : (curModel() || provTitle());
+    $('cModelText').textContent = isHuman ? (provTitle() + ' · ' + tr('в браузере')) : (dispModel || provTitle());
     $('cAuto').classList.toggle('on', S.autoContext);
     $('cPlan').classList.toggle('on', S.plan);
     $('sbChrome').firstChild.className = 'dot ' + ((isHuman || online) ? 'on' : 'off');
     $('sbChrome').lastChild.textContent = isHuman ? 'Humanize' : ('Chrome ' + (online ? tr('подключён') : tr('не запущен')));
-    $('sbModel').textContent = provTitle() + ' · ' + (isHuman ? tr('модель выбирается в браузере') : (curModel() || tr('модель по умолчанию')));
+    $('sbModel').textContent = provTitle() + ' · ' + (isHuman ? tr('модель выбирается в браузере') : (dispModel || tr('модель по умолчанию')));
     $('sbAuto').textContent = tr('Автоконтекст: ') + (S.autoContext ? tr('вкл') : tr('выкл'));
     if (S.mode !== 'busy') $('sbPhase').textContent = S.running ? tr('готов') : tr('сессия не запущена');
     $('sbPath').textContent = S.project || '';
     $('modelChip').classList.toggle('on', S.modelPop.open);
   }
-
-  /* ================= модели ================= */
 
   const DEFAULT_LEVELS = [['', tr('авто')], ['low', 'low'], ['medium', 'mid'], ['high', 'high'], ['off', 'off']];
   // уровни рассуждений: если список прочитан с сайта — показываем именно его, а не запомненный
@@ -795,10 +857,14 @@
     return lv && lv.length ? [['', tr('авто')]].concat(lv.map((l) => [l, l])) : DEFAULT_LEVELS;
   }
 
-  // Только то, что прочитано с сайта. Запомненного списка нет — до первой загрузки список пуст.
+  // Только то, что прочитано с сайта. Анализатор исправляет перепутанные поля имени и описания (в т.ч. из старого кэша).
   function modelEntries(provider) {
     const live = S.liveModels[provider];
-    return live && live.entries ? live.entries.map((e) => ({ id: e.name, name: e.name, desc: e.desc || '', live: true })) : [];
+    if (!live || !live.entries) return [];
+    return live.entries.map((e) => {
+      const a = analyzeModelEntry(e.name, e.desc || '');
+      return { id: a.id, name: a.name, rawName: e.name || a.name, desc: a.desc, badges: a.badges, live: true };
+    });
   }
 
   function onModels(ev) {
@@ -852,10 +918,10 @@
     function renderList() {
       list.textContent = '';
       const q = P.q.trim().toLowerCase();
-      const items = modelEntries(P.provider).filter((m) => !q || (m.name + ' ' + m.id + ' ' + m.desc).toLowerCase().includes(q));
-      const sel = S.models[P.provider];
-      list.appendChild(rowFor({ id: '', name: tr('По умолчанию'), desc: tr('Модель, выбранная на сайте') }, !sel && P.provider === S.provider));
-      for (const m of items) list.appendChild(rowFor(m, sel === m.id && P.provider === S.provider));
+      const items = modelEntries(P.provider).filter((m) => !q || (m.name + ' ' + m.id + ' ' + m.desc + ' ' + (m.badges || []).join(' ')).toLowerCase().includes(q));
+      const sel = resolveDisplayModel(P.provider) || S.models[P.provider];
+      list.appendChild(rowFor({ id: '', name: tr('По умолчанию'), desc: tr('Модель, выбранная на сайте'), badges: [] }, !sel && P.provider === S.provider));
+      for (const m of items) list.appendChild(rowFor(m, (sel === m.id || S.models[P.provider] === m.rawName) && P.provider === S.provider));
       if (!items.length) {
         const e = el('div', 'pop-empty');
         const on = (S.cdp[P.provider] || {}).online;
@@ -867,7 +933,10 @@
     function rowFor(m, selected) {
       const b = el('button', 'mrow' + (selected ? ' sel' : ''));
       const info = el('div', 'mi');
-      info.append(el('div', 'mn', m.name));
+      const head = el('div', 'mn-row');
+      head.appendChild(el('span', 'mn', m.name));
+      for (const bg of m.badges || []) head.appendChild(el('span', 'mbadge', bg));
+      info.appendChild(head);
       if (m.desc) info.appendChild(el('div', 'md2', m.desc));
       if (m.id && m.id !== m.name) info.appendChild(el('div', 'mid', m.id));
       b.appendChild(info);
@@ -1242,13 +1311,156 @@
     box.append(g, g2);
   }
 
-  function buildAbout() {
+  const CHANGELOG = [
+    {
+      ver: 'Vibe 0.01.4 beta',
+      date: '12.11.2026',
+      sections: [
+        {
+          title: tr('Новое: полностью автономный экранный режим Humanize и сохранение старого режима'),
+          lead: tr('Humanize переработан: теперь он умеет управлять чатом вообще без подключения к Chrome по CDP — строго как человек за компьютером, через обычное окно браузера, системный буфер обмена и физический ввод Windows.'),
+          items: [
+            tr('Три режима работы в Настройки → Функции → Подключение → Способ ввода в чат: «CDP (быстро)», «Humanize (имитация человека)» без отладочного порта и «Старый Humanize (CDP + имитация)»'),
+            tr('Экранный драйвер (core/screen_driver.py) сочетает Windows UI Automation и системный Windows OCR: сам находит окно Chrome с нужным чатом, поле ввода, кнопки отправки, остановки, открытия нового чата и копирования блоков кода'),
+            tr('Курсор движется по естественной кривой через Win32 SendInput с прерыванием при ручном сдвиге мыши; короткий текст печатается посимвольно с живым ритмом, длинный вставляется блоками через буфер обмена'),
+            tr('Чтение ответа происходит без чтения DOM — периодическим копированием текста страницы и сборкой кода из кнопок «Copy code», пока генерация не завершится'),
+            tr('В экранном режиме Humanize пилюли модели и статус-бар в IDE явно показывают, что модель и уровень рассуждений выбираются прямо во вкладке браузера')
+          ]
+        },
+        {
+          title: tr('Новое: умный анализатор моделей в CLI и IDE'),
+          lead: tr('Исправлена проблема, когда вместо названия модели (например, «4 Argon» или «3.1 Pro») в списке и на кнопках отображались её теги или подзаголовок («code * analysis», «New»).'),
+          items: [
+            tr('Анализатор моделей в core/gemini_bridge.py и Vibe IDE проверяет все строки пункта меню, отличает реальное имя модели от тегов возможностей (Code · Analysis, Reasoning, Fast) и описаний'),
+            tr('Даже если сайт рендерит бейдж или категорию первой строкой перед названием модели, анализатор распознаёт настоящее имя и выносит теги в аккуратные бейджи рядом с названием'),
+            tr('Автоматическая нормализация работает и для ранее сохранённого кэша models-cache.json — без необходимости сбрасывать настройки вручную')
+          ]
+        },
+        {
+          title: tr('Контекст, промпты и надёжность'),
+          items: [
+            tr('Дозапрос файлов по требованию модели (NEED_FILES): если при автоподборе контекста в чат попали не все нужные файлы, модель запрашивает недостающие пути одной строкой, и Vibe автоматически досылает их в тот же диалог'),
+            tr('Улучшена фильтрация меню моделей: промо-баннеры, кнопки настроек и заблокированные по тарифу модели не попадают в рабочий список выбора'),
+            tr('Обновлены английская и русская локализации интерфейса, промптов и описания режимов ввода')
+          ]
+        }
+      ]
+    },
+    {
+      ver: 'Vibe 0.01.3 beta',
+      date: '12.11.2026',
+      sections: [
+        {
+          title: tr('Новое: переключатель Humanize / CDP в IDE'),
+          lead: tr('Человекоподобный ввод из 0.01.2 (/human on) теперь доступен и в Vibe IDE, а не только в CLI.'),
+          items: [
+            tr('Новая настройка в Настройки → Функции → Подключение → Способ ввода в чат: CDP (быстро) и Humanize (имитация человека: кривая курсора, живой набор с неровными паузами, пауза перед отправкой)'),
+            tr('Применяется к запущенной сессии сразу и сохраняется между запусками'),
+            tr('В режиме Humanize отправка сообщения занимает на несколько секунд больше'),
+            tr('Режим лишь делает ввод похожим на человеческий. Никакой режим не гарантирует, что сервис не заметит автоматизацию, а её использование может нарушать правила сервиса.')
+          ]
+        },
+        {
+          title: tr('Новое: Vibi живёт в IDE'),
+          lead: tr('Пиксельная кошка из CLI теперь поселилась и в графической оболочке.'),
+          items: [
+            tr('Vibi сидит на верхней кромке поля ввода рядом с кнопкой отправки'),
+            tr('Пока модель работает, она прыгает на карточку ответа, ходит по ней во время генерации и замирает («читает»), пока модель думает'),
+            tr('Когда ответ готов, прыгает обратно и реагирует: радуется при успехе, грустит при ошибке, засыпает при остановке'),
+            tr('Кликните по ней, чтобы она подмигнула; также встречает на стартовом экране и в разделе «О программе»'),
+            tr('Анимации следуют настройке «Анимации интерфейса»')
+          ]
+        },
+        {
+          title: tr('Прочее и примечания'),
+          items: [
+            tr('Версия обновлена до 0.01.3 (CLI, IDE, README), добавлены переводы новых настроек на английский'),
+            tr('Бета, только Windows (проверено на Windows 11, Chrome 157) · Python 3.10+, Node.js 18+ для IDE · Неофициальный проект, используйте на свой риск')
+          ]
+        }
+      ]
+    },
+    {
+      ver: 'Vibe 0.01.2 beta',
+      date: '12.11.2026',
+      sections: [
+        {
+          title: tr('Новое: человекоподобный ввод (/human on) — только CLI'),
+          lead: tr('Опциональный режим, делающий ввод в браузере похожим на действия человека, а не скрипта.'),
+          items: [
+            tr('Курсор движется по кривой Безье с плавным ускорением и небольшими перелётами'),
+            tr('Клики приходятся в случайную точку элемента после короткого наведения'),
+            tr('Текст печатается настоящими событиями клавиш с неровными задержками (длинный текст вставляется кусками)'),
+            tr('Паузы перед отправкой, лёгкие смещения курсора во время ожидания ответа и автоматический откат к обычному действию при сбое'),
+            tr('Включается через /human on, VIBE_HUMAN=true или "human_input": true в .vibe.json')
+          ]
+        },
+        {
+          title: tr('Также с версии 0.01.0 (включая 0.01.1)'),
+          items: [
+            tr('Английский и русский языки в CLI, IDE и промптах (--lang, /lang, VIBE_LANG или настройки IDE; по умолчанию — язык системы)'),
+            tr('Кот Vibi: пиксельный маскот и новый облик CLI с анимациями и настроениями'),
+            tr('run_vibe.bat автоматически перезапускается в Windows Terminal, если он установлен'),
+            tr('Новые тесты: i18n и human-input (tests/test_i18n.py, tests/test_humanize.py) и проверка переводов IDE (node .vibeide/check-i18n.js)'),
+            tr('Улучшения в мосте браузера, селекторе контекста и патчере; версия обновлена до 0.01.2')
+          ]
+        },
+        {
+          title: tr('Примечания'),
+          items: [
+            tr('Бета, только Windows (проверено на Windows 11, Chrome 157) · Python 3.10+, Node.js 18+ для IDE · Неофициальный проект, используйте на свой риск')
+          ]
+        }
+      ]
+    }
+  ];
+
+  function buildAbout(subTab) {
+    const activeTab = subTab || S.aboutTab || 'info';
+    S.aboutTab = activeTab;
     const box = $('sAbout');
     box.textContent = '';
-    const a = el('div', 'about');
-    const logo = el('canvas', 'vibi-cv'); Vibi(logo, 8).animate(S.motion);
-    a.append(logo, el('h2', null, 'Vibe IDE ' + VERSION), el('div', 'hint', tr('Оболочка для Vibe CLI: чат с ИИ по подписке (Gemini, Claude, Google AI Studio), подбор контекста, патчи и проверка сборки.')));
-    box.appendChild(a);
+
+    const nav = el('div', 'about-subtabs');
+    for (const [id, label] of [['info', tr('О программе')], ['changelog', tr('История изменений')]]) {
+      const b = el('button', 'about-subtab' + (activeTab === id ? ' active' : ''), label);
+      b.addEventListener('click', () => buildAbout(id));
+      nav.appendChild(b);
+    }
+    box.appendChild(nav);
+
+    if (activeTab === 'info') {
+      const a = el('div', 'about');
+      const logo = el('canvas', 'vibi-cv'); Vibi(logo, 8).animate(S.motion);
+      a.append(
+        logo,
+        el('h2', null, 'Vibe IDE ' + VERSION),
+        el('div', 'hint', tr('Оболочка для Vibe CLI: чат с ИИ по подписке (Gemini, Claude, Google AI Studio), подбор контекста, патчи и проверка сборки.')),
+        el('div', 'about-meta', tr('Статус: бета · ОС: Windows 10/11 · Python 3.10+ · Electron · Лицензия: MIT'))
+      );
+      box.appendChild(a);
+    } else {
+      const wrap = el('div', 'changelog');
+      for (const rel of CHANGELOG) {
+        const card = el('div', 'cl-card');
+        const head = el('div', 'cl-head');
+        head.append(el('span', 'cl-ver', rel.ver), el('span', 'cl-date', rel.date));
+        card.appendChild(head);
+        for (const sec of rel.sections) {
+          const sb = el('div', 'cl-sec');
+          sb.appendChild(el('h4', null, sec.title));
+          if (sec.lead) sb.appendChild(el('p', 'cl-lead', sec.lead));
+          if (sec.items && sec.items.length) {
+            const ul = el('ul', 'cl-list');
+            for (const it of sec.items) ul.appendChild(el('li', null, it));
+            sb.appendChild(ul);
+          }
+          card.appendChild(sb);
+        }
+        wrap.appendChild(card);
+      }
+      box.appendChild(wrap);
+    }
   }
 
   /* ================= привязка интерфейса ================= */

@@ -186,7 +186,10 @@ details.logbox { font-size: 12px; color: var(--fg3); } details.logbox summary { 
 .pop-list { overflow: auto; padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
 .mrow { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 10px; border: 1px solid transparent; background: transparent; text-align: left; }
 .mrow:hover { background: var(--bg3); } .mrow.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.mrow .mn { font-weight: 600; font-size: 13px; } .mrow .md2 { font-size: 11.5px; color: var(--fg3); } .mrow .mi { flex: 1; min-width: 0; } .mrow .mid { font-family: var(--mono); font-size: 10.5px; color: var(--fg4); }
+.mrow .mn-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mrow .mn { font-weight: 600; font-size: 13px; color: var(--fg); }
+.mrow .mbadge { font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, var(--bg3)); border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--line)); color: var(--accent); letter-spacing: .2px; }
+.mrow .md2 { font-size: 11.5px; color: var(--fg3); margin-top: 2px; } .mrow .mi { flex: 1; min-width: 0; } .mrow .mid { font-family: var(--mono); font-size: 10.5px; color: var(--fg4); }
 .pop-foot { border-top: 1px solid var(--line); padding: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .seg { display: inline-flex; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 2px; }
 .seg button { border: none; background: transparent; padding: 4px 10px; border-radius: 7px; font-size: 12px; color: var(--fg3); } .seg button.active { background: var(--accent); color: var(--accent-fg); }
@@ -237,6 +240,19 @@ details.logbox { font-size: 12px; color: var(--fg3); } details.logbox summary { 
 .val { font-family: var(--mono); font-size: 12px; color: var(--fg3); min-width: 40px; text-align: right; }
 .conn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg2); margin-bottom: 8px; } .conn .t { flex: 1; } .conn .t b { display: block; } .conn .t span { font-size: 12px; color: var(--fg3); font-family: var(--mono); }
 .about { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; } .about svg { width: 72px; height: 72px; }
+.about-meta { font-size: 12px; color: var(--fg4); font-family: var(--mono); margin-top: 4px; }
+.about-subtabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--bg2); border: 1px solid var(--line); border-radius: 11px; margin-bottom: 20px; }
+.about-subtab { border: none; background: transparent; color: var(--fg3); padding: 6px 14px; border-radius: 8px; font-size: 12.5px; font-weight: 500; transition: background .2s, color .2s; }
+.about-subtab:hover { color: var(--fg); background: var(--bg3); }
+.about-subtab.active { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+.changelog { display: flex; flex-direction: column; gap: 16px; }
+.cl-card { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; animation: itemIn .3s var(--ease) both; }
+.cl-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.cl-ver { font-weight: 700; font-size: 15px; color: var(--fg); }
+.cl-date { font-family: var(--mono); font-size: 11.5px; color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--bg3)); padding: 3px 9px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.cl-sec h4 { margin: 0 0 4px; font-size: 13.5px; color: var(--fg); }
+.cl-lead { margin: 0 0 6px; font-size: 12.5px; color: var(--fg2); line-height: 1.5; }
+.cl-list { margin: 0; padding-left: 18px; color: var(--fg3); font-size: 12.5px; line-height: 1.55; display: flex; flex-direction: column; gap: 4px; }
 
 /* статус-бар */
 .statusbar { height: 26px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 14px; background: var(--bg2); border-top: 1px solid var(--line); font-size: 11.5px; color: var(--fg3); }

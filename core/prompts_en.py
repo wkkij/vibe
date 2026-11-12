@@ -36,7 +36,8 @@ terminal command
 7. Put ALL operation blocks (<<<FILE>>>, <<<CREATE>>>, <<<DELETE>>>, <<<RUN_CMD>>>) inside ONE fenced ```text ... ``` block,
    so that indentation and empty lines are not lost when the answer is displayed.
 8. The project context arrives in the attached file `.vibe_context_bundle.txt`. If there is no file or it is empty, say so in one line
-   and do NOT make up the contents of files."""
+   and do NOT make up the contents of files. If a file from <project_overview> needed for the task is missing from <repository_files> (or truncated),
+   answer with ONE line `NEED_FILES: path1, path2` (up to 8 paths from <project_overview>) and write nothing else — the files will be sent."""
 
 AUTO_CONTEXT_RULE = """9. The context was picked automatically for the task: <repository_files> does NOT hold all project files, only those relevant to the description.
    The full list of files is in <project_overview>. If you need a file that is not in the context, answer with ONE line
@@ -47,7 +48,8 @@ PLAN_BODY = """Analyze the project structure and write a clear engineering plan:
 1. **Goal and architecture of the solution** (briefly: how exactly we implement the feature or fix).
 2. **Affected files** (which files we change, which we create from scratch).
 3. **Dependencies and commands** (whether packages must be installed or configs changed).
-4. **Potential pitfalls** (what to pay attention to)."""
+4. **Potential pitfalls** (what to pay attention to).
+If you need a file from <project_overview> that is not in <repository_files> to write the plan, answer with ONE line `NEED_FILES: path1, path2` and write nothing else."""
 
 FMT = "as <<<FILE: ...>>> blocks (SEARCH/REPLACE) or <<<CREATE: ...>>>"
 

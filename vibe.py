@@ -219,6 +219,7 @@ class VibeOrchestrator:
             self.dirty_files.clear()
             self._report_transport()
             attach = None
+            plan_response = await self._fulfil_need_files(plan_response)
 
             show_answer(plan_response, t("План реализации"), kind="plan")
 
@@ -466,7 +467,7 @@ class VibeOrchestrator:
         for e in entries:
             if e.get("kind", "model") != "model":
                 continue
-            desc = e["full"][len(e["name"]):].lstrip(" |")
+            desc = e.get("desc") if "desc" in e else e["full"][len(e["name"]):].lstrip(" |")
             out.append({"name": e["name"], "desc": desc, "checked": bool(e.get("checked"))})
         emit("models", provider=self.config.provider, current=self.config.model or current, entries=out, levels=levels,
              catalog=catalog_for(self.config.provider) if self.bridge.prov.static_models else [])
@@ -489,7 +490,7 @@ class VibeOrchestrator:
                 table.add_column(t("Описание"), style="dim")
                 table.add_column("", style=ui.OK)
                 for i, e in enumerate(models, 1):
-                    desc = e["full"][len(e["name"]):].lstrip(" |")
+                    desc = e.get("desc") if "desc" in e else e["full"][len(e["name"]):].lstrip(" |")
                     chosen = self.config.model and self.bridge._norm(self.config.model) == self.bridge._norm(e["name"])
                     table.add_row(str(i), e["name"], desc, t("◀ выбрана") if chosen else (ui.icon("ok") if e["checked"] else ""))
                 console.print(table)

@@ -618,6 +618,72 @@ class WebChatBridge:
     def _is_setting(name: str) -> bool:
         return bool(SETTING_RE.search(name))
 
+    _BADGE_LINE_RE = re.compile(
+        r"^(?:new|нов\w+|beta|бета|preview|experimental|эксперимент\w+|"
+        r"code(?:\s*[·*•|/,-]\s*\w+)+|coding(?:\s*[·*•|/,-]\s*\w+)*|"
+        r"(?:code|coding|analysis|reasoning|math|fast|research|vision|audio|multimodal|chat|general)"
+        r"(?:\s*[·*•+&,/|-]\s*(?:code|coding|analysis|reasoning|math|fast|research|vision|audio|multimodal|chat|general))+|"
+        r"(?:код|анализ|рассужд\w+|математ\w+|быстр\w+|исслед\w+)"
+        r"(?:\s*[·*•+&,/|-]\s*(?:код|анализ|рассужд\w+|математ\w+|быстр\w+|исслед\w+))+)$",
+        re.I,
+    )
+    _MODEL_NAME_HINT_RE = re.compile(
+        r"(\b\d+(?:\.\d+)?\b|gemini|claude|sonnet|opus|haiku|flash|pro|ultra|nano|argon|griffin|nebula|"
+        r"learnlm|gemma|imagen|veo|thinking|fast|deep\s*research|experimental|быстр\w+|рассужд\w+|эксперимент\w+)",
+        re.I,
+    )
+    _DESC_SENTENCE_RE = re.compile(
+        r"\b(best for|good for|great for|ideal for|most capable|everyday|complex tasks|our most|"
+        r"подходит для|отлично подходит|лучше всего|наиболее эффектив\w+|для сложн\w+|для повседневн\w+|самая мощн\w+|быстрые ответы)\b",
+        re.I,
+    )
+
+    @classmethod
+    def _is_badge_or_desc_line(cls, s: str) -> bool:
+        st = s.strip()
+        if not st:
+            return True
+        if cls._BADGE_LINE_RE.match(st) or cls._DESC_SENTENCE_RE.search(st):
+            return True
+        # Строка вида "code * analysis" или "код · анализ" с разделителями-звёздочками/точками без цифр/имени модели
+        if re.search(r"\s[·*•]\s", st) and not re.search(r"\d", st) and len(st.split()) <= 5:
+            return True
+        return False
+
+    @classmethod
+    def _analyze_model_parts(cls, parts: List[str]) -> Tuple[str, str]:
+        """Анализатор пункта меню модели: отделяет реальное название модели (например '4 Argon')
+        от тегов/категорий ('Code · Analysis', 'New') и длинного описания.
+        -> (name, desc)
+        """
+        clean = [p.strip() for p in parts if p and p.strip()]
+        if not clean:
+            return "", ""
+        if len(clean) == 1:
+            return clean[0], ""
+
+        best_idx = 0
+        best_score = -10**9
+        for idx, part in enumerate(clean):
+            score = 0
+            if idx == 0:
+                score += 2
+            if cls._is_badge_or_desc_line(part):
+                score -= 8
+            if cls._MODEL_NAME_HINT_RE.search(part):
+                score += 6
+            if re.search(r"\b\d+(?:\.\d+)?\s+[a-zа-я]{2,}", part, re.I):
+                score += 5
+            if len(part) > 42 or len(part.split()) > 6:
+                score -= 5
+            if score > best_score:
+                best_score = score
+                best_idx = idx
+
+        name = clean[best_idx]
+        rest = [p for i, p in enumerate(clean) if i != best_idx]
+        return name, " | ".join(rest)
+
     @staticmethod
     def _classify_entry(name: str, full: str, disabled: bool = False) -> str:
         """kind пункта меню: model | setting | option | submenu | promo | locked.
@@ -664,9 +730,19 @@ class WebChatBridge:
             if not full or full in seen:
                 continue
             seen.add(full)
-            name = full.split(" | ")[0]
-            kind = self._classify_entry(name, full, disabled)
-            out.append({"idx": i, "name": name, "full": full, "checked": checked and kind == "model", "kind": kind, "locked": kind == "locked"})
+            parts = [x.strip() for x in raw.splitlines() if x.strip()]
+            name, desc = self._analyze_model_parts(parts)
+            norm_full = f"{name} | {desc}" if desc else name
+            kind = self._classify_entry(name, norm_full, disabled)
+            out.append({
+                "idx": i,
+                "name": name,
+                "desc": desc,
+                "full": norm_full,
+                "checked": checked and kind == "model",
+                "kind": kind,
+                "locked": kind == "locked",
+            })
         return out
 
     async def _current_model_label(self, page) -> str:
