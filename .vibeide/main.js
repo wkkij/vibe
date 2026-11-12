@@ -129,7 +129,7 @@ function pythonFor(root) {
   return 'python';
 }
 
-/* ---------------- Chrome / CDP ---------------- */
+/* ---------------- Chrome ---------------- */
 
 function cdpUrls(project, root) {
   const urls = { gemini: 'http://127.0.0.1:9222', claude: 'http://127.0.0.1:9223', aistudio: 'http://127.0.0.1:9222' };
@@ -289,7 +289,7 @@ ipcMain.handle('session-start', async (_e, o) => {
       PYTHONUTF8: '1',
       VIBE_IDE: '1',
       VIBE_LANG: LANG,
-      VIBE_HUMAN: o.human ? 'true' : 'false',
+      VIBE_HUMAN: o.human === 'old' ? 'old' : (o.human ? 'true' : 'false'),
       VIBE_RESPONSE_TIMEOUT: String(minutes * 60),
       COLUMNS: '110',
       TERM: 'dumb',
@@ -643,3 +643,4 @@ ipcMain.handle('ignore-set', (_e, project, patterns) => {
     return { ok: false, error: e.message };
   }
 });
+

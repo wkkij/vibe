@@ -283,3 +283,4 @@ class VibiRunner:
         buf.append(f"{status}\n\r\x1b[?2026l")
         self._w("".join(buf))
         self.out.flush()
+

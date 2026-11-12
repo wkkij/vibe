@@ -102,3 +102,4 @@ class BrowserVerifier:
                 await browser.close()
 
         return (screenshot_path if screenshot_path.exists() else None), console_errors, page_title
+

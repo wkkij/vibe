@@ -356,6 +356,7 @@ details.logbox { font-size: 12px; color: var(--fg3); } details.logbox summary { 
 /* Vibi */
 .vibi-cv { image-rendering: pixelated; }
 canvas.hero-logo { width: 112px; height: 98px; filter: drop-shadow(0 14px 30px color-mix(in srgb, var(--accent) 45%, transparent)); }
-.vibi-pet { position: fixed; left: 0; top: 0; z-index: 40; width: 64px; height: 56px; pointer-events: none; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); will-change: transform; }
+.vibi-pet { position: fixed; left: 0; top: 0; z-index: 40; width: 64px; height: 56px; pointer-events: none; will-change: transform; }
 .sb-vibi { width: 28px; height: 24.5px; vertical-align: middle; margin-right: 6px; }
 .about canvas.vibi-cv { width: 128px; height: 112px; }
+

@@ -103,3 +103,4 @@ def test_menu_entry_classification():
     assert c("Другие модели", "Другие модели") == "submenu"
     assert c("Уровень усилий", "Уровень усилий | Низкий") == "option"
     assert c("Thinking level", "Thinking level | High") == "setting"
+

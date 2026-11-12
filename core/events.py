@@ -92,3 +92,4 @@ class GenerationStopped(Exception):
     def __init__(self, partial: str = ""):
         super().__init__(t("Генерация остановлена пользователем"))
         self.partial = partial
+

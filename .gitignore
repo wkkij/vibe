@@ -17,6 +17,6 @@ node_modules/
 dist/
 
 # Scratch / OS
-testelectro/
 .DS_Store
 Thumbs.db
+

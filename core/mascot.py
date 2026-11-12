@@ -125,3 +125,4 @@ def work_frames(uni: bool = None) -> list:
     if uni:
         return ["[•ω•]", "[•ω•]", "[•ω•]", "[-ω-]", "[•ω•]", "[◕ω◕]", "[•ω•]", "[•ω•]"]
     return ["[owo]", "[owo]", "[owo]", "[-w-]", "[owo]", "[OwO]"]
+

@@ -18,3 +18,4 @@ exit /b 1
 :launch
 echo Found Chrome: "%CHROME_EXE%"
 start "" "%CHROME_EXE%" --remote-debugging-port=9222 --user-data-dir="%PROFILE_DIR%" "https://gemini.google.com/app"
+

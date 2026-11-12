@@ -33,3 +33,4 @@ contextBridge.exposeInMainWorld('vibe', {
     return () => ipcRenderer.removeListener(channel, handler);
   }
 });
+

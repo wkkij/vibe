@@ -114,8 +114,12 @@ class VibeConfig:
         self.max_heal_retries = int(os.getenv("VIBE_MAX_HEAL_RETRIES", "4"))
         self.upload_context_as_file = os.getenv("VIBE_UPLOAD_CONTEXT_AS_FILE", "true").lower() == "true"
         self.transport = os.getenv("VIBE_TRANSPORT", "auto").lower()
-        # человекоподобный ввод в браузере (кривая курсора, набор текста, паузы): /human on|off
-        self.human_input = os.getenv("VIBE_HUMAN", "false").lower() in ("1", "true", "yes", "on")
+        # человекоподобный ввод в браузере (кривая курсора, набор текста, паузы): /human on|old|off
+        _h_env = os.getenv("VIBE_HUMAN", "false").lower()
+        self.human_mode = "old" if _h_env in ("old", "legacy", "старый") else ("on" if _h_env in ("1", "true", "yes", "on") else "off")
+        self.human_input = self.human_mode != "off"
+        self.human_input_offset = int(os.getenv("VIBE_HUMAN_INPUT_OFFSET", "90"))
+        self.human_blank = int(os.getenv("VIBE_HUMAN_BLANK", "45"))
         self.extra_ignores = []
         # автоподбор контекста по описанию задачи (вместо отправки всех файлов)
         self.auto_context = os.getenv("VIBE_AUTO_CONTEXT", "false").lower() in ("1", "true", "yes", "on")
@@ -181,7 +185,16 @@ class VibeConfig:
                 self.upload_context_as_file = data.get("upload_context_as_file", self.upload_context_as_file)
                 self.extra_ignores = data.get("ignore", [])
                 self.transport = data.get("transport", self.transport)
-                self.human_input = bool(data.get("human_input", self.human_input))
+                if not os.getenv("VIBE_HUMAN"):
+                    raw_hm = data.get("human_mode", "")
+                    if raw_hm in ("on", "old", "off"):
+                        self.human_mode = raw_hm
+                        self.human_input = raw_hm != "off"
+                    elif "human_input" in data:
+                        self.human_input = bool(data.get("human_input", self.human_input))
+                        self.human_mode = "on" if self.human_input else "off"
+                self.human_input_offset = int(data.get("human_input_offset", self.human_input_offset))
+                self.human_blank = int(data.get("human_blank", self.human_blank))
                 self.auto_context = bool(data.get("auto_context", self.auto_context))
                 self.auto_context_max_files = int(data.get("auto_context_max_files", self.auto_context_max_files))
                 self.auto_context_budget = int(data.get("auto_context_budget", self.auto_context_budget))
@@ -205,6 +218,7 @@ class VibeConfig:
             "ignore": self.extra_ignores,
             "transport": self.transport,
             "human_input": self.human_input,
+            "human_mode": self.human_mode,
             "auto_context": self.auto_context,
             "auto_context_max_files": self.auto_context_max_files,
             "auto_context_budget": self.auto_context_budget,
@@ -218,3 +232,4 @@ class VibeConfig:
         if self.vibe_rules_file.exists():
             return self.vibe_rules_file.read_text(encoding="utf-8").strip()
         return ""
+

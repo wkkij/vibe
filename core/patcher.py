@@ -221,3 +221,4 @@ class DiffPatcher:
                 results.append(PatchResult(rel_path, "FAILED", t("Ни один из {n} блоков SEARCH не совпал с файлом", n=len(sr_blocks)), 0, failed_texts))
 
         return results, commands
+

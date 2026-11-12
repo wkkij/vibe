@@ -224,3 +224,4 @@ BUNDLE_B64 = (
 )
 
 STYLE_TITLES = {"auto": "Auto (new wording every time)", "classic": "Classic (always the same text)"}
+

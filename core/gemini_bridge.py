@@ -8,12 +8,14 @@ import time
 from pathlib import Path
 from typing import List, Optional, Tuple
 
+from . import osinput
 from .config import VibeConfig
-from .humanize import HumanInput
 from .events import GenerationStopped, clear_stop, emit, stop_requested
+from .humanize import HumanInput
 from .i18n import t
 from .prompts import PromptBook
 from .providers import Provider, catalog_for, get_provider
+from .screen_driver import ScreenSession
 
 # Пункты меню выбора модели бывают не только моделями. Всё, что не модель, в список и в выбор не попадает.
 PROMO_RE = re.compile(
@@ -62,17 +64,21 @@ class WebChatBridge:
         self.pending_files: List[Path] = []  # вложения пользователя (zip/изображения) для следующего сообщения
         self.prompts = PromptBook("classic")  # CLI подставляет свой PromptBook со стилем из настроек
 
-    # ------------------------------------------------------------ human-like input (/human on|off)
+    # ------------------------------------------------------------ human-like input (/human on|old|off)
     def _hum(self) -> Optional[HumanInput]:
-        """HumanInput when the human mode is on, else None."""
-        if not getattr(self.config, "human_input", False):
+        """HumanInput when the old (CDP+OS) human mode is on, else None."""
+        if not (getattr(self.config, "human_input", False) and getattr(self.config, "human_mode", "on") == "old"):
             return None
         if getattr(self, "_human", None) is None:
             self._human = HumanInput()
         return self._human
 
+    @property
+    def _is_screen_human(self) -> bool:
+        return bool(getattr(self.config, "human_input", False) and getattr(self.config, "human_mode", "on") != "old")
+
     async def _nap(self, seconds: float):
-        """asyncio.sleep; in the human mode with natural jitter."""
+        """asyncio.sleep; in the old human mode with natural jitter."""
         await asyncio.sleep(seconds * random.uniform(0.85, 1.5) if self._hum() else seconds)
 
     async def _click(self, locator, **kw):
@@ -105,6 +111,9 @@ class WebChatBridge:
 
         full_message = f"{system_instruction}\n\n{prompt}".strip() if system_instruction else prompt
 
+        if self._is_screen_human:
+            return await self._send_via_screen(full_message, attachment_path, new_chat)
+
         has_file = bool(attachment_path and attachment_path.exists() and attachment_path.stat().st_size > 0)
         is_text = has_file and attachment_path.suffix.lower() in (".txt", ".md", ".json", ".log")
         chain = (self._transport_chain() if is_text else ["file", "paste"]) if has_file else ["none"]
@@ -129,6 +138,34 @@ class WebChatBridge:
         raise RuntimeError(
             t("{title} так и не увидел контекст проекта ни одним способом ({chain}). Последний ответ модели:\n{last}", title=self.prov.title, chain=", ".join(chain), last=last_text[:500])
         ) from last_err
+
+    async def _send_via_screen(
+        self,
+        message: str,
+        attachment_path: Optional[Path],
+        new_chat: bool,
+    ) -> str:
+        if not osinput.available():
+            raise RuntimeError(t("Режим Humanize доступен только в Windows."))
+        has_file = bool(attachment_path and attachment_path.exists() and attachment_path.stat().st_size > 0)
+        if has_file:
+            if attachment_path.suffix.lower() in (".txt", ".md", ".json", ".log"):
+                body = attachment_path.read_text(encoding="utf-8", errors="replace")
+                message = f'<attached_file name=".vibe_context_bundle.txt">\n{body}\n</attached_file>\n\n{message}'
+                self.last_transport = "inline"
+            else:
+                emit("log", level="warn", text=t("В режиме Humanize вложения-файлы ({name}) не отправляются — прикрепите их в браузере вручную.", name=attachment_path.name))
+                self.last_transport = "none"
+        else:
+            self.last_transport = "none"
+
+        if self.pending_files:
+            names = ", ".join(p.name for p in self.pending_files)
+            emit("log", level="warn", text=t("В режиме Humanize вложения-файлы ({name}) не отправляются — прикрепите их в браузере вручную.", name=names))
+            self.pending_files.clear()
+
+        session = ScreenSession(self.config)
+        return await session.send_and_read(message, self.prov.key, self.prov.title, new_chat=new_chat)
 
     def _transport_chain(self) -> List[str]:
         mode = self.config.transport
@@ -364,8 +401,7 @@ class WebChatBridge:
         if hum is not None:
             try:
                 if await self._editor_text_len(page) > 0:
-                    await page.keyboard.press("ControlOrMeta+A")
-                    await page.keyboard.press("Backspace")
+                    await hum.clear(page)
                 await hum.fill(page, text)
                 await self._nap(0.6)
                 if await self._editor_text_len(page) >= want:
@@ -865,3 +901,4 @@ class WebChatBridge:
 
 
 GeminiSubscriptionBridge = WebChatBridge  # обратная совместимость
+

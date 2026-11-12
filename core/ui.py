@@ -307,3 +307,4 @@ def working(console, text: str, enabled: bool = True):
         yield
     finally:
         status.stop()
+

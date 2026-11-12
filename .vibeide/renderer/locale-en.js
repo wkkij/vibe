@@ -352,14 +352,23 @@
   "язык интерфейса": "interface language",
   "Язык сменится после завершения сессии": "The language will change when the session ends",
   "Язык интерфейса IDE и сообщений Vibe CLI. Применяется сразу.": "Language of the IDE interface and of the Vibe CLI messages. Applies at once.",
-    "Способ подключения к чату": "Chat input method",
-  "Humanize: курсор идёт по кривой, текст печатается с неровным ритмом, перед отправкой есть пауза. Сообщение занимает на несколько секунд дольше. Связь с Chrome по-прежнему CDP, но это не гарантия, что сервис не заметит автоматизацию": "Humanize: the cursor travels along a curved path, text is typed with an irregular rhythm, and there is a pause before sending. A message takes a few seconds longer. The connection to Chrome is still CDP, and this does not guarantee that a service won't notice automation",
-  "CDP: быстрое управление страницей, как в Playwright (курсор прыгает в центр кнопки, текст вставляется целиком)": "CDP: fast page control like Playwright (the cursor jumps to the centre of a button, text is pasted at once)",
+    "Применено к текущей сессии": "Applied to the current session",
+  "Способ ввода в чат": "Chat input method",
+  "Humanize: Vibe имитирует человека настоящим вводом Windows. Реальный курсор идёт по кривой, текст печатается клавишами с неровным ритмом, перед отправкой есть пауза. Пока идёт отправка, не трогайте мышь и клавиатуру, а окно Chrome должно быть в фокусе. Работает только в Windows и занимает на несколько секунд больше. Гарантии, что сервис не заметит автоматизацию, нет": "Humanize: Vibe imitates a person with real Windows input. The real cursor travels along a curved path, text is typed key by key with an irregular rhythm, and there is a pause before sending. While a message is being sent, don't touch the mouse or keyboard, and the Chrome window must be in focus. Windows only; a message takes a few seconds longer. There is no guarantee that a service won't notice automation",
+  "Humanize: Vibe вообще не подключается к браузеру и работает через окно Chrome, мышь, клавиатуру и буфер обмена Windows. Реальный курсор идёт по кривой, текст печатается клавишами или вставляется из буфера, а ответ читается копированием страницы. Пока идёт работа, окно Chrome должно быть видимым — не трогайте мышь и клавиатуру. Модель и уровень рассуждений выбираются в браузере вручную. Работает только в Windows; гарантии, что сервис не заметит автоматизацию, нет": "Humanize: Vibe does not connect to the browser at all and works through the Chrome window, mouse, keyboard and Windows clipboard. The real cursor travels along a curved path, text is typed key by key or pasted from the clipboard, and the answer is read by copying the page. While it works, keep the Chrome window visible and do not touch the mouse or keyboard. Pick the model and reasoning level in the browser yourself. Windows only; there is no guarantee that a service won't notice automation",
+  "CDP: быстрое управление страницей через Chrome DevTools Protocol, курсор прыгает в центр кнопки, текст вставляется целиком": "CDP: fast page control through the Chrome DevTools Protocol, the cursor jumps to the centre of a button, text is pasted at once",
   "CDP (быстро)": "CDP (fast)",
-  "Humanize (человекоподобно)": "Humanize (human-like)",
-  "Применено к текущей сессии": "Applied to the current session",
-"Русский": "Русский"
+  "Humanize (имитация человека)": "Humanize (human imitation)",
+  "Старый Humanize (CDP + имитация)": "Old Humanize (CDP + imitation)",
+  "В режиме Humanize модель выбирается в браузере": "In Humanize mode the model is chosen in the browser",
+  "Модель выбирается в браузере": "Model is chosen in the browser",
+  "модель выбирается в браузере": "model chosen in browser",
+  "в браузере": "in browser",
+  "В режиме Humanize Vibe не подключается к Chrome: выберите нужную модель и уровень рассуждений прямо во вкладке чата.": "In Humanize mode Vibe does not connect to Chrome: pick the model and reasoning level right in the chat tab.",
+  "Использовать ": "Use ",
+  "Русский": "Русский"
 };
   if (typeof module !== 'undefined' && module.exports) module.exports = EN;
   else root.VIBE_EN = EN;
 })(typeof window !== 'undefined' ? window : globalThis);
+

@@ -27,7 +27,7 @@ from core.runner import BrowserVerifier, TerminalRunner
 
 console = Console()
 IDE = ide_mode()  # Vibe IDE: вместо рамок и таблиц CLI шлёт события (core/events.py), интерфейс рисует IDE
-VERSION = "0.01.3"
+VERSION = "0.01.4"
 
 
 def say(text: str, level: str = "info") -> None:
@@ -669,13 +669,25 @@ class VibeOrchestrator:
                 say(t("Без подтверждений: [bold]{state}[/bold]. /yolo on|off", state=t("вкл") if self.yolo_mode else t("выкл")))
         elif name == "human":
             a = arg.lower()
-            if a in ("on", "off", "вкл", "выкл", "1", "0"):
-                self.config.human_input = a in ("on", "вкл", "1")
+            if a in ("on", "off", "old", "вкл", "выкл", "старый", "1", "0"):
+                if a in ("old", "старый"):
+                    self.config.human_mode = "old"
+                    self.config.human_input = True
+                    state_str = "old"
+                elif a in ("on", "вкл", "1"):
+                    self.config.human_mode = "on"
+                    self.config.human_input = True
+                    state_str = t("включено")
+                else:
+                    self.config.human_mode = "off"
+                    self.config.human_input = False
+                    state_str = t("выключено")
                 self.config.save_project_config()
-                emit("setting", key="human", value=self.config.human_input)
-                say(ui.ok(t("Человекоподобный ввод: {state}", state=t("включено") if self.config.human_input else t("выключено"))), "ok")
+                emit("setting", key="human", value=self.config.human_mode if self.config.human_input else False)
+                say(ui.ok(t("Человекоподобный ввод: {state}", state=state_str)), "ok")
             else:
-                say(t("Человекоподобный ввод: [bold]{state}[/bold]. /human on|off", state=t("вкл") if self.config.human_input else t("выкл")))
+                cur_state = "old" if (self.config.human_input and self.config.human_mode == "old") else (t("вкл") if self.config.human_input else t("выкл"))
+                say(t("Человекоподобный ввод: [bold]{state}[/bold]. /human on|off", state=cur_state))
         elif name == "verify_cmd":
             self.config.verify_cmd = arg
             self.config.save_project_config()
@@ -837,3 +849,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

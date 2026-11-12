@@ -142,3 +142,4 @@ def test_vibi_run_pictures():
     assert vibi_run.detect_mode({"WT_SESSION": "1"}) == "sixel"
     assert vibi_run.detect_mode({"VIBE_IMAGES": "off"}) == "blocks"
     assert vibi_run.detect_mode({"WT_SESSION": "1", "TMUX": "x"}) == "blocks"
+

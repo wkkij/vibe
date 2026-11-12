@@ -21,3 +21,4 @@ echo Step 1: Run scripts\start_chrome_windows.bat
 echo Step 2: Run run_vibe.bat
 echo ======================================================
 pause
+

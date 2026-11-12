@@ -140,3 +140,4 @@ def test_match_ignores_settings():
     assert b._match(E, "4")["name"] == "4 Argon"
     assert b._match(E, "3.1pro")["name"] == "3.1 Pro"
     assert b._match(E, "3.8")["name"] == "3.8 Flash"
+

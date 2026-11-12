@@ -366,3 +366,4 @@ def style_title(style: str) -> str:
 
 def describe_styles() -> List[Dict[str, str]]:
     return [{"id": k, "title": style_title(k)} for k in VALID_STYLES]
+

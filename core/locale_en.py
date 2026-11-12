@@ -47,7 +47,12 @@ EN = {
     'Без подтверждений: {state}': 'No confirmations: {state}',
     'Человекоподобный ввод: {state}': 'Human-like input: {state}',
     'Человекоподобный ввод: [bold]{state}[/bold]. /human on|off': 'Human-like input: [bold]{state}[/bold]. /human on|off',
-    'человекоподобный ввод в браузере (курсор, набор текста): /human on|off': 'human-like input in the browser (cursor, typing): /human on|off',
+    'ввод Humanize (включается в IDE): /human on|off': 'Humanize input (switched on in the IDE): /human on|off',
+    'Режим Humanize доступен только в Windows.': 'Humanize mode is available on Windows only.',
+    'Окно Chrome с чатом {title} не найдено. Откройте браузер, войдите в аккаунт и оставьте вкладку с чатом активной.': 'Chrome window with {title} chat was not found. Open the browser, sign in and leave the chat tab active.',
+    'Не удалось вывести окно Chrome на передний план. Сделайте окно с чатом видимым и повторите.': 'Could not bring the Chrome window to the front. Make the chat window visible and try again.',
+    'Движение мыши прервано пользователем.': 'Mouse movement was interrupted by the user.',
+    'В режиме Humanize вложения-файлы ({name}) не отправляются — прикрепите их в браузере вручную.': 'In Humanize mode file attachments ({name}) are not sent automatically — attach them in the browser by hand.',
     'Без подтверждений: выполняю автоматически': 'No confirmations: running automatically',
     'Безопасность': 'Safety',
     'Беру задачу в работу ({title})…': 'Taking the task ({title})…',
@@ -251,3 +256,4 @@ EN = {
     'язык интерфейса: /lang en|ru|auto': 'interface language: /lang en|ru|auto',
     '◀ выбрана': '◀ selected',
 }
+

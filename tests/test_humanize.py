@@ -123,3 +123,16 @@ def test_typing_uses_shift_enter_and_long_text_uses_insert():
     short, long_ = asyncio.run(go())
     assert ("type", "a") in short and ("down", "Shift") in short and ("press", "Enter") in short
     assert all(e[0] == "insert" for e in long_) and sum(e[1] for e in long_) == 9000
+
+
+def test_os_coordinates_roundtrip_and_fallback():
+    """Пересчёт координат страницы в экранные и обратно; на не-Windows Humanize работает без ввода ОС."""
+    from core import osinput
+    m = dict(sx=100, sy=50, ow=1216, oh=840, iw=1200, ih=760, dpr=1.25, focus=True)
+    sx, sy = osinput.page_to_screen(m, 10, 20)
+    assert (round(sx, 1), round(sy, 1)) == (147.5, 177.5)
+    px, py = osinput.screen_to_page(m, sx, sy)
+    assert (round(px, 3), round(py, 3)) == (10.0, 20.0)
+    if not osinput.available():
+        assert humanize.HumanInput().os is None
+

@@ -56,3 +56,4 @@ def make_session(history_path: str, get_models: Callable[[], List[str]]):
                             yield Completion(m, start_position=-len(rest))
 
     return PromptSession(history=FileHistory(history_path), completer=VibeCompleter(), complete_while_typing=True)
+

@@ -161,3 +161,4 @@ class ContextPacker:
         bundle_path = self.root / ".vibe_context_bundle.txt"
         bundle_path.write_text(text, encoding="utf-8")
         return bundle_path, count, tokens
+

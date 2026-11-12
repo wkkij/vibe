@@ -15,3 +15,4 @@ if exist ".venv\Scripts\python.exe" (
     python vibe.py %*
 )
 pause
+

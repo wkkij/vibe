@@ -6,7 +6,7 @@
   const $ = (id) => document.getElementById(id);
   const el = MD.el;
   const LS_KEY = 'vibeide:v2';
-  const VERSION = '0.01.3';
+  const VERSION = '0.01.4';
 
   /* ================= данные ================= */
 
@@ -118,7 +118,7 @@
     project: null, provider: 'gemini',
     models: { gemini: '', claude: '', aistudio: '' }, reasonings: { gemini: '', claude: '', aistudio: '' },
     theme: 'graphite', accent: '', density: 'standard', fontSize: 14, radius: 12, chatWidth: 860, fx: true, motion: true, inspector: true,
-    autoChrome: true, yolo: false, transport: 'auto', inputMode: 'cdp', attach: [], plan: false, autoContext: false, maxFiles: 24, budget: 30000, promptStyle: 'auto',
+    autoChrome: true, yolo: false, transport: 'auto', inputMode: 'standard', attach: [], plan: false, autoContext: false, maxFiles: 24, budget: 30000, promptStyle: 'auto',
     showThink: true, livePreview: true, notify: true, timeoutMin: 60, recents: [], liveModels: {}, autoBat: 'sel', startScripts: '', modelsRefreshMin: 60, lastTry: {}, refreshing: false,
     // служебное (не сохраняется)
     running: false, starting: false, mode: 'off', outbox: [], turn: null, stick: true, vibeRoot: null, python: null,
@@ -132,7 +132,7 @@
   function loadSettings() {
     try {
       const o = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-      if (o) { for (const k of PERSIST) if (o[k] !== undefined) S[k] = o[k]; return; }
+      if (o) { for (const k of PERSIST) if (o[k] !== undefined) S[k] = o[k]; if (S.inputMode !== 'human' && S.inputMode !== 'human_old') S.inputMode = 'standard'; return; }
       const old = JSON.parse(localStorage.getItem('vibeide:v1') || '{}');   // миграция со старой версии
       for (const k of ['project', 'provider', 'autoChrome', 'yolo', 'plan', 'fx', 'timeoutMin', 'recents']) if (old[k] !== undefined) S[k] = old[k];
       if (old.model) S.models[S.provider] = old.model;
@@ -589,15 +589,17 @@
     if (S.starting) return false;
     S.starting = true; renderSession();
     addSys(tr('Запуск Vibe CLI…'));
+    const isHuman = S.inputMode === 'human';
+    const humanArg = S.inputMode === 'human' ? 'on' : (S.inputMode === 'human_old' ? 'old' : 'off');
     const r = await api.sessionStart({
-      project: S.project, provider: S.provider, model: curModel().trim(), reasoning: S.reasonings[S.provider] || '', yolo: S.yolo, transport: S.transport, human: S.inputMode === 'human',
-      autoChrome: S.autoChrome, timeoutMin: S.timeoutMin, autoContext: S.autoContext, promptStyle: S.promptStyle
+      project: S.project, provider: S.provider, model: isHuman ? '' : curModel().trim(), reasoning: isHuman ? '' : (S.reasonings[S.provider] || ''), yolo: S.yolo, transport: S.transport, human: S.inputMode === 'human_old' ? 'old' : isHuman,
+      autoChrome: isHuman ? false : S.autoChrome, timeoutMin: S.timeoutMin, autoContext: S.autoContext, promptStyle: S.promptStyle
     });
     S.starting = false;
     if (!r || !r.ok) { addSys((r && r.error) || tr('Не удалось запустить сессию'), 'err'); renderSession(); return false; }
     S.running = true; S.mode = 'booting';
-    api.sessionSend('/human ' + (S.inputMode === 'human' ? 'on' : 'off'));
-    if (S.autoContext) { api.sessionSend('/autocontext_set ' + S.maxFiles + ' ' + S.budget); }
+    silent('/human ' + humanArg);
+    if (S.autoContext) silent('/autocontext_set ' + S.maxFiles + ' ' + S.budget);
     renderSession();
     return true;
   }
@@ -715,6 +717,7 @@
   const agoText = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? tr('только что') : m < 60 ? m + tr(' мин назад') : Math.round(m / 60) + tr(' ч назад'); };
 
   async function refreshModels(provider, quiet) {
+    if (S.inputMode === 'human') { if (!quiet) toast(tr('В режиме Humanize модель выбирается в браузере')); return false; }
     if (!S.project) { if (!quiet) toast(tr('Сначала выберите папку проекта'), true); return false; }
     if (!(S.cdp[provider] || {}).online) { if (!quiet) toast(tr('Chrome для ') + PROVIDERS[provider].title + tr(' не запущен'), true); return false; }
     S.lastTry[provider] = Date.now();
@@ -724,7 +727,7 @@
     return false;
   }
   async function refreshAllModels(force, quiet) {
-    if (S.refreshing || !S.project || S.mode === 'busy' || S.mode === 'booting') return;
+    if (S.inputMode === 'human' || S.refreshing || !S.project || S.mode === 'busy' || S.mode === 'booting') return;
     S.refreshing = true;
     try {
       for (const p of Object.keys(PROVIDERS)) {
@@ -742,7 +745,7 @@
   // автозапуск батников при старте IDE
   async function autoStart() {
     if (!S.vibeRoot) return;
-    if (S.autoBat !== 'off') {
+    if (S.inputMode !== 'human' && S.autoBat !== 'off') {
       const provs = S.autoBat === 'all' ? ['gemini', 'claude'] : [S.provider === 'claude' ? 'claude' : 'gemini'];
       for (const p of provs) if (!(S.cdp[p] || {}).online) api.launchChrome(p, S.project);
     }
@@ -767,15 +770,16 @@
   }
 
   function updateStatusBar() {
+    const isHuman = S.inputMode === 'human';
     const online = S.cdp[S.provider] && S.cdp[S.provider].online;
-    $('chipText').textContent = provTitle() + ' · ' + (curModel() || tr('авто'));
-    $('chipDot').className = 'dot ' + (online ? 'on' : 'off');
-    $('cModelText').textContent = curModel() || provTitle();
+    $('chipText').textContent = provTitle() + ' · ' + (isHuman ? tr('в браузере') : (curModel() || tr('авто')));
+    $('chipDot').className = 'dot ' + ((isHuman || online) ? 'on' : 'off');
+    $('cModelText').textContent = isHuman ? (provTitle() + ' · ' + tr('в браузере')) : (curModel() || provTitle());
     $('cAuto').classList.toggle('on', S.autoContext);
     $('cPlan').classList.toggle('on', S.plan);
-    $('sbChrome').firstChild.className = 'dot ' + (online ? 'on' : 'off');
-    $('sbChrome').lastChild.textContent = 'Chrome ' + (online ? tr('подключён') : tr('не запущен'));
-    $('sbModel').textContent = provTitle() + ' · ' + (curModel() || tr('модель по умолчанию'));
+    $('sbChrome').firstChild.className = 'dot ' + ((isHuman || online) ? 'on' : 'off');
+    $('sbChrome').lastChild.textContent = isHuman ? 'Humanize' : ('Chrome ' + (online ? tr('подключён') : tr('не запущен')));
+    $('sbModel').textContent = provTitle() + ' · ' + (isHuman ? tr('модель выбирается в браузере') : (curModel() || tr('модель по умолчанию')));
     $('sbAuto').textContent = tr('Автоконтекст: ') + (S.autoContext ? tr('вкл') : tr('выкл'));
     if (S.mode !== 'busy') $('sbPhase').textContent = S.running ? tr('готов') : tr('сессия не запущена');
     $('sbPath').textContent = S.project || '';
@@ -827,6 +831,17 @@
       const b = el('button', 'pop-tab' + (k === P.provider ? ' active' : ''), PROVIDERS[k].title);
       b.addEventListener('click', () => { P.provider = k; P.q = ''; renderModelPop(); });
       tabs.appendChild(b);
+    }
+    if (S.inputMode === 'human') {
+      const e = el('div', 'pop-empty');
+      e.appendChild(el('b', null, tr('Модель выбирается в браузере')));
+      e.appendChild(el('span', null, tr('В режиме Humanize Vibe не подключается к Chrome: выберите нужную модель и уровень рассуждений прямо во вкладке чата.')));
+      const useBtn = el('button', 'btn small primary', tr('Использовать ') + PROVIDERS[P.provider].title);
+      useBtn.addEventListener('click', () => pickModel(P.provider, ''));
+      const foot = el('div', 'pop-foot');
+      foot.appendChild(useBtn);
+      pop.append(tabs, e, foot);
+      return;
     }
     const search = el('div', 'pop-search');
     const inp = el('input'); inp.placeholder = P.provider === 'aistudio' ? tr('Поиск модели (список — с сайта)…') : tr('Поиск модели…'); inp.value = P.q;
@@ -1183,10 +1198,12 @@
     const g4 = group(tr('Подключение'));
     g4.appendChild(srow(tr('Автозапуск Chrome при старте сессии'), tr('Если Chrome с отладкой не запущен — стартует батник'), toggleCtl('autoChrome')));
     g4.appendChild(srow(tr('Автозапуск батников при старте IDE'), tr('Сразу после открытия IDE запускается scripts/start_chrome_*.bat'), selectCtl('autoBat', [['off', tr('Выключен')], ['sel', tr('Chrome выбранного провайдера')], ['all', tr('Chrome Gemini и Claude')]])));
-    g4.appendChild(srow(tr('Способ подключения к чату'), S.inputMode === 'human'
-      ? tr('Humanize: курсор идёт по кривой, текст печатается с неровным ритмом, перед отправкой есть пауза. Сообщение занимает на несколько секунд дольше. Связь с Chrome по-прежнему CDP, но это не гарантия, что сервис не заметит автоматизацию')
-      : tr('CDP: быстрое управление страницей, как в Playwright (курсор прыгает в центр кнопки, текст вставляется целиком)'),
-      selectCtl('inputMode', [['cdp', tr('CDP (быстро)')], ['human', tr('Humanize (человекоподобно)')]], (v) => { silent('/human ' + (v === 'human' ? 'on' : 'off')); if (S.running) toast(tr('Применено к текущей сессии')); buildFeatures(); })));
+    g4.appendChild(srow(tr('Способ ввода в чат'), S.inputMode === 'human'
+      ? tr('Humanize: Vibe вообще не подключается к браузеру и работает через окно Chrome, мышь, клавиатуру и буфер обмена Windows. Реальный курсор идёт по кривой, текст печатается клавишами или вставляется из буфера, а ответ читается копированием страницы. Пока идёт работа, окно Chrome должно быть видимым — не трогайте мышь и клавиатуру. Модель и уровень рассуждений выбираются в браузере вручную. Работает только в Windows; гарантии, что сервис не заметит автоматизацию, нет')
+      : S.inputMode === 'human_old'
+        ? tr('Humanize: Vibe имитирует человека настоящим вводом Windows. Реальный курсор идёт по кривой, текст печатается клавишами с неровным ритмом, перед отправкой есть пауза. Пока идёт отправка, не трогайте мышь и клавиатуру, а окно Chrome должно быть в фокусе. Работает только в Windows и занимает на несколько секунд больше. Гарантии, что сервис не заметит автоматизацию, нет')
+        : tr('CDP: быстрое управление страницей через Chrome DevTools Protocol, курсор прыгает в центр кнопки, текст вставляется целиком'),
+      selectCtl('inputMode', [['standard', tr('CDP (быстро)')], ['human', tr('Humanize (имитация человека)')], ['human_old', tr('Старый Humanize (CDP + имитация)')]], (v) => { silent('/human ' + (v === 'human' ? 'on' : (v === 'human_old' ? 'old' : 'off'))); if (S.running) toast(tr('Применено к текущей сессии')); updateStatusBar(); buildFeatures(); })));
     const ta = el('textarea'); ta.rows = 3; ta.placeholder = 'scripts/my.bat\nC:\\tools\\run.bat'; ta.value = S.startScripts || ''; ta.className = 'input';
     ta.addEventListener('change', () => { S.startScripts = ta.value; saveSettings(); });
     g4.appendChild(srow(tr('Свои скрипты при старте IDE'), tr('По одному пути в строке (.bat). Относительные пути — от папки Vibe'), ta, 'col'));
@@ -1371,3 +1388,4 @@
 
   init();
 })();
+
